@@ -1,0 +1,21 @@
+[Unit]
+Description=Pocket Clips
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=pocket-clips
+Group=pocket-clips
+WorkingDirectory=/var/lib/pocket-clips
+Environment=DATA_DIR=/var/lib/pocket-clips PORT=8080 TZ=Europe/Berlin BASE_URL=https://clips.example.com
+ExecStart=/usr/local/bin/pocket-clips
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/pocket-clips
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
