@@ -289,3 +289,12 @@ a.stat:hover { border-color: var(--accent); text-decoration: none; }
   .hints { display: none; }
   .pal-search input { font-size: 16px; }
 }
+
+/* ---- placeholder autocomplete in editors ---- */
+.ph-editor { position: relative; }
+.ph-pop { position: absolute; z-index: 70; min-width: 280px; max-width: min(460px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,.18); padding: 4px; max-height: 260px; overflow-y: auto; }
+.ph-opt { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; padding: 6px 8px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+.ph-opt.hl { background: var(--accent-soft); }
+.ph-opt .mono { color: var(--accent-hover); }
+.ph-opt .small { overflow: hidden; text-overflow: ellipsis; }
+.ph-foot { padding: 6px 8px 2px; border-top: 1px solid var(--border); margin-top: 4px; }

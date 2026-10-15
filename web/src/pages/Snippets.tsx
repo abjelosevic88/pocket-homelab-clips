@@ -8,6 +8,7 @@ import { copyText } from '../lib/clipboard'
 import { plural } from '../lib/format'
 import { Hints, SnippetMeta, SnippetRow, Template, useMedia } from '../components/items'
 import { Confirm, Field, Modal, PageHeader, useDebounce, useToast } from '../components/ui'
+import { PlaceholderEditor, SNIPPET_COMPLETIONS } from '../components/PlaceholderEditor'
 
 export default function Snippets() {
   const [params, setParams] = useSearchParams()
@@ -120,7 +121,9 @@ function SnippetModal({ s, onClose, onSaved }: { s: Partial<Snippet>; onClose: (
   const [f, setF] = useState({ name: s.name || '', keyword: s.keyword || '', content: s.content || '', folder: s.folder || '', shared: s.shared || false, pinned: s.pinned || false })
   const [busy, setBusy] = useState(false)
   const [preview, setPreview] = useState<ExpandResult | null>(null)
-  const ta = useRef<HTMLTextAreaElement>(null)
+  const ta = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null)
+  const [names, setNames] = useState<string[]>([])
+  useEffect(() => { api.get<{ snippets: Snippet[] }>(`${V1}/snippets?limit=500`).then(r => setNames(r.snippets.map(x => x.name).filter(n => n !== s.name))).catch(() => {}) }, [s.name])
   const debounced = useDebounce(f.content, 250)
   useEffect(() => {
     if (!debounced.trim() || !/\{[^}]+\}/.test(debounced)) { setPreview(null); return }
@@ -131,7 +134,7 @@ function SnippetModal({ s, onClose, onSaved }: { s: Partial<Snippet>; onClose: (
   const insert = (ph: string) => {
     const el = ta.current
     if (!el) { setF(x => ({ ...x, content: x.content + ph })); return }
-    const a = el.selectionStart, b = el.selectionEnd
+    const a = el.selectionStart ?? f.content.length, b = el.selectionEnd ?? a
     const v = f.content.slice(0, a) + ph + f.content.slice(b)
     setF(x => ({ ...x, content: v }))
     requestAnimationFrame(() => { el.focus(); el.setSelectionRange(a + ph.length, a + ph.length) })
@@ -151,8 +154,9 @@ function SnippetModal({ s, onClose, onSaved }: { s: Partial<Snippet>; onClose: (
           <Field label="Keyword" help="Short trigger, no spaces. Also used by GET /api/v1/snippets/expand?keyword=…"><input value={f.keyword} onChange={e => setF({ ...f, keyword: e.target.value.replace(/\s+/g, '') })} maxLength={40} placeholder="sig" className="mono" /></Field>
         </div>
         <Field label="Content">
-          <textarea ref={ta} value={f.content} onChange={e => setF({ ...f, content: e.target.value })} rows={8} required className="mono" spellCheck={false} />
+          <PlaceholderEditor inputRef={ta} value={f.content} onChange={v => setF(x => ({ ...x, content: v }))} completions={SNIPPET_COMPLETIONS} snippetNames={names} rows={8} required className="mono" />
           <div className="chips mt-sm">{PLACEHOLDERS.map(([ph, help]) => <button type="button" key={ph} className="chip sm mono" title={help} onClick={() => insert(ph)}>{ph}</button>)}</div>
+          <span className="help">Type <code>{'{'}</code> for completions.</span>
         </Field>
         {preview && <div className="callout"><div className="muted small mb-sm">Preview with today's values</div><pre className="mono" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{preview.text}</pre>{preview.missing.length > 0 && <div className="muted small mt-sm">Asks for: {preview.missing.join(', ')}</div>}</div>}
         <div className="two-col tight">

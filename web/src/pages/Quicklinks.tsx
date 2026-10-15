@@ -8,6 +8,7 @@ import { copyText } from '../lib/clipboard'
 import { plural } from '../lib/format'
 import { Favicon, Hints, QuicklinkMeta, QuicklinkRow, Template, useMedia } from '../components/items'
 import { Confirm, Field, Modal, PageHeader, useToast } from '../components/ui'
+import { PlaceholderEditor, QUICKLINK_COMPLETIONS } from '../components/PlaceholderEditor'
 
 export default function Quicklinks() {
   const [params, setParams] = useSearchParams()
@@ -118,7 +119,7 @@ function QuicklinkModal({ x, onClose, onSaved }: { x: Partial<Quicklink>; onClos
   const { folders } = useApp()
   const [f, setF] = useState({ name: x.name || '', keyword: x.keyword || '', link: x.link || '', icon: x.icon || '', open_with: x.open_with || '', folder: x.folder || '', shared: x.shared || false, pinned: x.pinned || false })
   const [busy, setBusy] = useState(false)
-  const linkRef = useRef<HTMLInputElement>(null)
+  const linkRef = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null)
   const insert = (ph: string) => {
     const el = linkRef.current
     const a = el?.selectionStart ?? f.link.length
@@ -137,7 +138,7 @@ function QuicklinkModal({ x, onClose, onSaved }: { x: Partial<Quicklink>; onClos
     <Modal title={x.id ? 'Edit quicklink' : 'New quicklink'} onClose={onClose} size="lg">
       <form onSubmit={save} className="grid" style={{ gap: 14 }}>
         <Field label="Link" help={<>{'{Query}'} is asked for and URL-encoded when you open it. Several inputs: <code>{'{argument name="a"}'}</code> <code>{'{argument name="b" default="x"}'}</code>.</>}>
-          <input ref={linkRef} value={f.link} onChange={e => setF({ ...f, link: e.target.value })} autoFocus required className="mono" placeholder="https://www.google.com/search?q={Query}" spellCheck={false} />
+          <PlaceholderEditor inputRef={linkRef} multiline={false} value={f.link} onChange={v => setF(x => ({ ...x, link: v }))} completions={QUICKLINK_COMPLETIONS} autoFocus required className="mono" placeholder="https://www.google.com/search?q={Query}" />
           <div className="chips mt-sm"><button type="button" className="chip sm mono" onClick={() => insert('{Query}')}>{'{Query}'}</button><button type="button" className="chip sm mono" onClick={() => insert('{argument name="x" default=""}')}>{'{argument name="x"}'}</button><button type="button" className="chip sm mono" onClick={() => insert('{clipboard}')}>{'{clipboard}'}</button></div>
         </Field>
         <div className="two-col tight">
