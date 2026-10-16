@@ -82,7 +82,14 @@ export function Meta({ rows }: { rows: [string, React.ReactNode][] }) {
 }
 
 export function ClipPreview({ c }: { c: Clip }) {
-  if (c.kind === 'image') return <div className="preview image"><img src={`${V1}/clips/${c.id}/image`} alt={c.title || 'clipboard image'} /></div>
+  const [full, setFull] = useState(false)
+  if (c.kind === 'image') {
+    const src = `${V1}/clips/${c.id}/image`
+    return <>
+      <button type="button" className="preview image clickable" onClick={() => setFull(true)} title="Open full size"><img src={src} alt={c.title || 'clipboard image'} /><span className="zoom-hint">⤢</span></button>
+      {full && <Lightbox src={src} title={c.title || 'Clipboard image'} meta={c.width ? `${c.width} × ${c.height} · ${fmtBytes(c.bytes)}` : fmtBytes(c.bytes)} onClose={() => setFull(false)} />}
+    </>
+  }
   if (c.kind === 'color') return <div className="preview color"><span className="swatch-lg" style={{ background: c.content }} /><code>{c.content}</code></div>
   if (c.kind === 'link') return <div className="preview"><a href={c.content.startsWith('www.') ? 'https://' + c.content : c.content} target="_blank" rel="noreferrer noopener" className="break">{c.content}</a>{c.title && <div className="muted mt-sm">{c.title}</div>}</div>
   return <pre className="preview text">{c.content}</pre>
@@ -126,6 +133,31 @@ export function QuicklinkMeta({ q }: { q: Quicklink }) {
     ['Used', q.use_count ? `${plural(q.use_count, 'time')} · last ${timeAgo(q.last_used_at)}` : 'never'],
     ['Search engine URL', q.arguments.length ? <code className="break small">{go}</code> : ''],
   ]} />
+}
+
+/** Full-screen image viewer: fit to screen, click the image for 1:1, Esc or backdrop closes. */
+export function Lightbox({ src, title, meta, onClose }: { src: string; title: string; meta?: string; onClose: () => void }) {
+  const [actual, setActual] = useState(false)
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }
+    window.addEventListener('keydown', h, true)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { window.removeEventListener('keydown', h, true); document.body.style.overflow = prev }
+  }, [onClose])
+  return (
+    <div className={`lightbox ${actual ? 'actual' : ''}`} onClick={onClose} role="dialog" aria-modal="true" aria-label={title}>
+      <div className="lb-bar" onClick={e => e.stopPropagation()}>
+        <span className="lb-title">{title}{meta && <span className="muted"> · {meta}</span>}</span>
+        <span className="spacer" />
+        <button className="btn ghost sm" onClick={() => setActual(a => !a)} title={actual ? 'Fit to screen' : 'Actual size'}>{actual ? 'Fit' : '1:1'}</button>
+        <a className="btn ghost sm" href={src} target="_blank" rel="noreferrer noopener">Open original</a>
+        <a className="btn ghost sm" href={src} download>Download</a>
+        <button className="btn ghost icon" onClick={onClose} aria-label="Close">✕</button>
+      </div>
+      <div className="lb-body"><img src={src} alt={title} onClick={e => { e.stopPropagation(); setActual(a => !a) }} /></div>
+    </div>
+  )
 }
 
 /** Asks for the {argument}s of a snippet or quicklink before use. */

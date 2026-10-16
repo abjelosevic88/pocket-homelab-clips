@@ -300,3 +300,18 @@ html { scrollbar-gutter: stable; }
 .ph-opt .mono { color: var(--accent-hover); }
 .ph-opt .small { overflow: hidden; text-overflow: ellipsis; }
 .ph-foot { padding: 6px 8px 2px; border-top: 1px solid var(--border); margin-top: 4px; }
+
+/* ---- image preview + lightbox ---- */
+button.preview.image { border: 0; width: 100%; cursor: zoom-in; position: relative; font: inherit; color: inherit; }
+button.preview.image:hover .zoom-hint { opacity: 1; }
+.zoom-hint { position: absolute; right: 8px; bottom: 8px; width: 26px; height: 26px; border-radius: 7px; background: rgba(0,0,0,.55); color: #fff; display: grid; place-items: center; font-size: 14px; opacity: 0; transition: opacity .15s; }
+.lightbox { position: fixed; inset: 0; z-index: 200; background: rgba(8, 10, 16, .92); display: flex; flex-direction: column; animation: lb-in .12s ease-out; }
+@keyframes lb-in { from { opacity: 0 } to { opacity: 1 } }
+.lb-bar { display: flex; align-items: center; gap: 6px; padding: 10px 14px; color: #e6e8ec; font-size: 13px; }
+.lb-bar .lb-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-bar .muted { color: #9aa3b2; }
+.lb-bar .btn { color: #e6e8ec; } .lb-bar .btn:hover { background: rgba(255,255,255,.12); text-decoration: none; }
+.lb-body { flex: 1; min-height: 0; display: grid; place-items: center; overflow: auto; padding: 0 16px 16px; }
+.lb-body img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; box-shadow: 0 20px 60px rgba(0,0,0,.5); cursor: zoom-in; }
+.lightbox.actual .lb-body { display: block; }
+.lightbox.actual .lb-body img { max-width: none; max-height: none; cursor: zoom-out; margin: 0 auto; display: block; }
