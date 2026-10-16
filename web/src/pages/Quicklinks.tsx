@@ -100,7 +100,7 @@ export default function Quicklinks() {
         <div className={`pal-body ${cur ? 'has-detail' : ''}`}>
           <div className="pal-list" ref={list} role="listbox">
             {items.length === 0 && <div className="empty"><h3>{q ? 'No matches' : 'No quicklinks yet'}</h3><p className="muted">{q ? '' : 'Create one, or import the JSON that Raycast exports (Quicklinks → Export).'}</p></div>}
-            {items.map((x, i) => <div key={x.id} data-i={i} onMouseMove={() => hl !== i && setHl(i)}><QuicklinkRow q={x} hl={i === hl} onClick={() => { setHl(i); if (narrow) setSheet(true) }} onDoubleClick={() => open(x)} /></div>)}
+            {items.map((x, i) => <div key={x.id} data-i={i}><QuicklinkRow q={x} hl={i === hl} onClick={() => { setHl(i); if (narrow) setSheet(true) }} onDoubleClick={() => open(x)} /></div>)}
           </div>
           {!narrow && cur && <aside className="detail">{detail}</aside>}
         </div>

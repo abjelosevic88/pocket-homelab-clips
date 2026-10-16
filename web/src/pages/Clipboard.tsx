@@ -124,7 +124,7 @@ export default function Clipboard() {
         <div className={`pal-body ${cur ? 'has-detail' : ''}`}>
           <div className="pal-list" ref={list} role="listbox">
             {clips.length === 0 && <div className="empty"><h3>{q ? 'No matches' : 'No clips yet'}</h3><p className="muted">{q ? 'Search matches word beginnings and substrings.' : 'Paste anything on this page to add it, or connect a clipboard watcher (Settings → Clients).'}</p></div>}
-            {clips.map((c, i) => <div key={c.id} data-i={i} onMouseMove={() => hl !== i && setHl(i)}><ClipRow c={c} hl={i === hl} onClick={() => { setHl(i); if (narrow) setSheet(true) }} onDoubleClick={() => copy(c)} /></div>)}
+            {clips.map((c, i) => <div key={c.id} data-i={i}><ClipRow c={c} hl={i === hl} onClick={() => { setHl(i); if (narrow) setSheet(true) }} onDoubleClick={() => copy(c)} /></div>)}
             {clips.length < total && <button className="btn block mt-sm" onClick={more}>Show more ({total - clips.length} left)</button>}
           </div>
           {!narrow && cur && <aside className="detail">{detail}</aside>}

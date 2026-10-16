@@ -122,7 +122,7 @@ export default function Search() {
               <div className="pal-head"><span>{s.title}</span>{s.more && <a href={s.more} onClick={e => { e.preventDefault(); navigate(s.more!) }}>Show all</a>}</div>
               {s.rows.map(({ row, i }) => {
                 const common = { hl: i === hl, onClick: () => { setHl(i); if (narrow) setSheet(true) }, onDoubleClick: () => primary(row) }
-                return <div key={row.kind + row.item.id} data-i={i} onMouseMove={() => hl !== i && setHl(i)}>
+                return <div key={row.kind + row.item.id} data-i={i}>
                   {row.kind === 'clip' ? <ClipRow c={row.item} {...common} /> : row.kind === 'snippet' ? <SnippetRow s={row.item} {...common} /> : <QuicklinkRow q={row.item} {...common} />}
                 </div>
               })}

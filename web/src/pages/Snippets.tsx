@@ -99,7 +99,7 @@ export default function Snippets() {
         <div className={`pal-body ${cur ? 'has-detail' : ''}`}>
           <div className="pal-list" ref={list} role="listbox">
             {items.length === 0 && <div className="empty"><h3>{q ? 'No matches' : 'No snippets yet'}</h3><p className="muted">{q ? '' : 'Create one, or import the JSON that Raycast exports (Snippets → Export).'}</p></div>}
-            {items.map((s, i) => <div key={s.id} data-i={i} onMouseMove={() => hl !== i && setHl(i)}><SnippetRow s={s} hl={i === hl} onClick={() => { setHl(i); if (narrow) setSheet(true) }} onDoubleClick={() => use(s)} /></div>)}
+            {items.map((s, i) => <div key={s.id} data-i={i}><SnippetRow s={s} hl={i === hl} onClick={() => { setHl(i); if (narrow) setSheet(true) }} onDoubleClick={() => use(s)} /></div>)}
           </div>
           {!narrow && cur && <aside className="detail">{detail}</aside>}
         </div>
