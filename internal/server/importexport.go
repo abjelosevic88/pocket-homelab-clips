@@ -10,8 +10,8 @@ import (
 )
 
 // Export is the portable JSON shape of a user's library. Snippets and
-// quicklinks use Raycast's field names (name/text/keyword, name/link/openWith)
-// so the arrays can be fed straight into Raycast's importers, and vice versa.
+// quicklinks use the common launcher field names (name/text/keyword,
+// name/link/openWith) so the arrays can be fed into other tools, and vice versa.
 type Export struct {
 	App        string            `json:"app"`
 	Version    string            `json:"version"`
@@ -42,8 +42,8 @@ type exportQuicklink struct {
 }
 
 // handleExport: GET /export?what=snippets|quicklinks|all (default all, clips
-// included only with ?clips=1). ?raycast=1 returns the bare array Raycast's
-// "Import Snippets" / "Import Quicklinks" dialogs expect.
+// included only with ?clips=1). ?bare=1 returns just the snippets or
+// quicklinks array instead of the wrapped export.
 func (s *Server) handleExport(w http.ResponseWriter, r *http.Request) {
 	u := userFrom(r.Context())
 	what := r.URL.Query().Get("what")
@@ -77,18 +77,18 @@ func (s *Server) handleExport(w http.ResponseWriter, r *http.Request) {
 		ex.Clips = list
 	}
 	name := "pocket-clips-" + time.Now().Format("20060102") + ".json"
-	if queryBool(r, "raycast") {
+	if queryBool(r, "bare") {
 		switch what {
 		case "snippets":
-			name = "raycast-snippets.json"
+			name = "pocket-clips-snippets.json"
 			w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
 			writeJSON(w, http.StatusOK, ex.Snippets)
 		case "quicklinks":
-			name = "raycast-quicklinks.json"
+			name = "pocket-clips-quicklinks.json"
 			w.Header().Set("Content-Disposition", `attachment; filename="`+name+`"`)
 			writeJSON(w, http.StatusOK, ex.Quicklinks)
 		default:
-			writeErr(w, http.StatusBadRequest, "raycast=1 needs what=snippets or what=quicklinks")
+			writeErr(w, http.StatusBadRequest, "bare=1 needs what=snippets or what=quicklinks")
 		}
 		return
 	}
@@ -96,7 +96,7 @@ func (s *Server) handleExport(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, ex)
 }
 
-// handleImport accepts our own export, or a bare array from Raycast: snippets
+// handleImport accepts our own export, or a bare array: snippets
 // ([{name,text,keyword}]) and quicklinks ([{name,link,openWith}]) are told
 // apart by their fields. Existing identical items are skipped.
 func (s *Server) handleImport(w http.ResponseWriter, r *http.Request) {

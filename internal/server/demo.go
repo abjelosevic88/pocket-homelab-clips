@@ -24,7 +24,7 @@ func (s *Server) seedDemo(ctx context.Context) error {
 		{Content: "Meeting moved to Thursday 14:00, same room. Bring the Q4 numbers.", SourceApp: "Mail"},
 		{Content: "rgb(13, 148, 136)", SourceApp: "Code"},
 		{Content: "SELECT name, keyword FROM snippets WHERE shared = 1 ORDER BY use_count DESC;", SourceApp: "TablePlus"},
-		{Content: "https://developer.raycast.com/api-reference/clipboard", SourceApp: "Arc"},
+		{Content: "https://developer.mozilla.org/en-US/docs/Web/API/Clipboard_API", SourceApp: "Arc"},
 		{Content: "The quick brown fox jumps over the lazy dog.", SourceApp: "Notes", Pinned: true},
 		{Content: "ssh -L 8080:localhost:8080 home-server", SourceApp: "Terminal"},
 		{Content: "Aleksandar Bjelosevic\nSenior Engineer\n+387 65 000 000", SourceApp: "Contacts"},

@@ -103,13 +103,12 @@ curl -fsS "${base}/api/v1/snippets/expand?keyword=sig&arg.name=Ana" \\
 # JSON with cursor offset and missing arguments
 curl -fsS -X POST ${base}/api/v1/snippets/expand -H "Authorization: Bearer pc_…" \\
   -H "Content-Type: application/json" -d '{"keyword":"mtg","args":{"attendees":"Ana"}}'`}</pre>
-          <p className="muted small">Raycast users: Snippets → Export in Raycast produces JSON this app imports as is, and <b>Export</b> here produces the array Raycast's importer accepts.</p>
         </Card>
         <Card title="Quicklinks as a browser search engine">
           <p className="muted">Any quicklink with a <code>{'{Query}'}</code> gets a redirect URL. Add it in your browser's search-engine settings with <code>%s</code> as the query, give it the same keyword, and type <code>g pocket clips</code> in the address bar:</p>
           <pre>{`${base}/go/g?q=%s        # by keyword
 ${base}/go/12?q=%s       # by id`}</pre>
-          <p className="muted small">Works while you are signed in here (session cookie){status?.auth_mode === 'none' ? ' — or always, since login is off' : ''}. Raycast's Quicklinks → Export JSON imports directly too.</p>
+          <p className="muted small">Works while you are signed in here (session cookie){status?.auth_mode === 'none' ? ' — or always, since login is off' : ''}.</p>
         </Card>
       </div>
     </div>
@@ -237,7 +236,7 @@ function Data() {
         <a className="btn primary" href={`${V1}/backup`}>Download database</a>
       </Card>
       <Card title="Export & import">
-        <p className="muted">Your snippets and quicklinks as one JSON file (add your text clips with the second button). The same file, or a bare array exported by Raycast, imports here; items you already have are skipped.</p>
+        <p className="muted">Your snippets and quicklinks as one JSON file (add your text clips with the second button). The same file, or a bare array of snippets or quicklinks, imports here; items you already have are skipped.</p>
         <div className="row wrap">
           <a className="btn" href={`${V1}/export`}>Export library</a>
           <a className="btn" href={`${V1}/export?clips=1`}>Export library + clips</a>
@@ -253,7 +252,7 @@ function About() {
   const counts = (data?.counts || {}) as Record<string, number>
   return (
     <Card title="About">
-      <p><b>Pocket Clips</b> is the server side of a Raycast-style clipboard history, snippet library and quicklink launcher: everything you copy, searchable from any device, with snippets that expand placeholders and quicklinks that take a query. One binary, one SQLite file, one volume.</p>
+      <p><b>Pocket Clips</b> is a self-hosted clipboard history, snippet library and quicklink launcher: everything you copy, searchable from any device, with snippets that expand placeholders and quicklinks that take a query. One binary, one SQLite file, one volume.</p>
       <p className="muted small">Open source (MIT) — <a href="https://github.com/abjelosevic88/pocket-homelab-clips" target="_blank" rel="noreferrer">github.com/abjelosevic88/pocket-homelab-clips</a>. Sibling projects: Pocket Habits, Pocket Inventory, Pocket Bookshelf, Pocket Split, Pocket Subtitles and Pocket Invoicing. Favicons by DuckDuckGo.</p>
       {data && (
         <table className="table compact mt">

@@ -87,7 +87,7 @@ export default function Quicklinks() {
       <PageHeader title="Quicklinks" sub={`${plural(total, 'quicklink')} · use {Query} or {argument name="x"} in the URL to be asked for input`} actions={<>
         <button className="btn" onClick={() => fileInput.current?.click()}>Import JSON</button>
         <input ref={fileInput} type="file" accept="application/json,.json" hidden onChange={e => e.target.files?.[0] && importFile(e.target.files[0])} />
-        <a className="btn" href={`${V1}/export?what=quicklinks&raycast=1`}>Export</a>
+        <a className="btn" href={`${V1}/export?what=quicklinks&bare=1`}>Export</a>
         <button className="btn primary" onClick={() => setEdit({})}>+ New quicklink</button>
       </>} />
       <div className="palette page">
@@ -99,7 +99,7 @@ export default function Quicklinks() {
         {folders.length > 0 && <div className="chips mb"><button className={`chip ${!folder ? 'active' : ''}`} onClick={() => set('folder', '')}>All</button>{folders.map(f => <button key={f} className={`chip ${folder === f ? 'active' : ''}`} onClick={() => set('folder', f)}>{f}</button>)}</div>}
         <div className={`pal-body ${cur ? 'has-detail' : ''}`}>
           <div className="pal-list" ref={list} role="listbox">
-            {items.length === 0 && <div className="empty"><h3>{q ? 'No matches' : 'No quicklinks yet'}</h3><p className="muted">{q ? '' : 'Create one, or import the JSON that Raycast exports (Quicklinks → Export).'}</p></div>}
+            {items.length === 0 && <div className="empty"><h3>{q ? 'No matches' : 'No quicklinks yet'}</h3><p className="muted">{q ? '' : 'Create one, or import a JSON array of quicklinks.'}</p></div>}
             {items.map((x, i) => <div key={x.id} data-i={i}><QuicklinkRow q={x} hl={i === hl} onClick={() => { setHl(i); if (narrow) setSheet(true) }} onDoubleClick={() => open(x)} /></div>)}
           </div>
           {!narrow && cur && <aside className="detail">{detail}</aside>}

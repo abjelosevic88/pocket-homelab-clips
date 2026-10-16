@@ -1,11 +1,11 @@
-// Package snippet expands dynamic placeholders the way Raycast snippets do:
+// Package snippet expands dynamic placeholders in snippets and quicklinks:
 //
 //	{clipboard} {selection} {cursor} {uuid}
 //	{date} {time} {datetime} {day}            with optional format="…" offset="+1d"
 //	{argument name="x" default="y"}
 //	{snippet name="Other snippet"}
 //
-// Formats use the Unicode / Raycast letters (yyyy-MM-dd HH:mm), not Go's.
+// Formats use the Unicode letters (yyyy-MM-dd HH:mm), not Go's.
 package snippet
 
 import (
@@ -98,7 +98,7 @@ func expand(tpl string, in Input, res *Result, seen map[string]bool, depth int) 
 				res.Missing = append(res.Missing, n)
 			}
 			return ""
-		case "query": // Raycast's classic quicklink placeholder
+		case "query": // the classic quicklink placeholder
 			if v, ok := in.Args["query"]; ok {
 				return v
 			}

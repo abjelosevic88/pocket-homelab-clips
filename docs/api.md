@@ -52,7 +52,7 @@ curl -X POST https://clips.example.com/api/v1/clips -H "Authorization: Bearer pc
 | Method | Path | Notes |
 |---|---|---|
 | `GET` | `/snippets` | `{"snippets": […], "total"}`. Your own plus shared ones. Filters: `q=`, `folder=`, `keyword=`, `mine=1`, `limit=`, `offset=`. |
-| `POST` | `/snippets` | `{"name", "keyword", "content", "folder", "shared", "pinned"}`. `text` is accepted as an alias of `content` (Raycast's field). Name defaults to the first words. |
+| `POST` | `/snippets` | `{"name", "keyword", "content", "folder", "shared", "pinned"}`. `text` is accepted as an alias of `content`. Name defaults to the first words. |
 | `GET` · `PUT` · `DELETE` | `/snippets/{id}` | Read / partial update (only the keys you send change) / delete. Only the owner (or an admin) may change a snippet. |
 | `POST` | `/snippets/{id}/expand` | `{"args": {"name": "Ana"}, "clipboard": "…", "selection": "…"}` → `{"text", "cursor", "missing"}`. `cursor` is the rune offset of `{cursor}` (−1 if none); `missing` lists arguments without value or default. Counts a use unless `?dry=1`. |
 | `GET` | `/snippets/expand?keyword=sig&arg.name=Ana` | Same, by keyword (or `name=`, `id=`), returned as `text/plain` (`&json=1` for JSON). Made for `curl … \| pbcopy`. |
@@ -83,14 +83,14 @@ Unknown placeholders are left as typed.
 | `POST` | `/quicklinks/{id}/open` | `{"args": {"query": "…"}, "clipboard"}` → `{"url", "open_with"}` with every placeholder filled and percent-encoded, or `{"url": "", "missing": [...], "arguments": [...]}` when input is needed. Counts a use. |
 | `GET` | `/go/{keyword or id}?q=…` | Outside `/api`: redirects (302) to the resolved link. `q` fills `{Query}` and every argument that has no own parameter; `?name=value` fills a specific argument. Works with the session cookie, so a browser can use `https://clips.example.com/go/g?q=%s` as a custom search engine. |
 
-`{Query}` (Raycast's classic placeholder) and `{argument name="…"}` both work in links; `{clipboard}` too.
+`{Query}` (the classic quicklink placeholder) and `{argument name="…"}` both work in links; `{clipboard}` too.
 
 ## Export / import
 
 | Method | Path | Notes |
 |---|---|---|
-| `GET` | `/export` | `{"app", "version", "exported_at", "snippets": [{name,text,keyword,folder,…}], "quicklinks": [{name,link,keyword,icon,openWith,…}]}`. `?clips=1` adds your clips. `?what=snippets&raycast=1` / `?what=quicklinks&raycast=1` returns the bare array Raycast's import dialogs accept. |
-| `POST` | `/import` | Body = an export, **or** a bare array as exported by Raycast (snippets `[{name,text,keyword}]` or quicklinks `[{name,link,openWith}]`, told apart by their fields). Items you already have are skipped; a keyword already in use is dropped from the imported item. → `{"snippets", "quicklinks", "clips", "skipped"}` |
+| `GET` | `/export` | `{"app", "version", "exported_at", "snippets": [{name,text,keyword,folder,…}], "quicklinks": [{name,link,keyword,icon,openWith,…}]}`. `?clips=1` adds your clips. `?what=snippets&bare=1` / `?what=quicklinks&bare=1` returns just that array. |
+| `POST` | `/import` | Body = an export, **or** a bare array (snippets `[{name,text,keyword}]` or quicklinks `[{name,link,openWith}]`, told apart by their fields). Items you already have are skipped; a keyword already in use is dropped from the imported item. → `{"snippets", "quicklinks", "clips", "skipped"}` |
 
 ## Misc
 

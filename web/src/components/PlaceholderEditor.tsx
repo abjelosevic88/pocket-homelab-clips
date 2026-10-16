@@ -46,8 +46,8 @@ interface Props {
   inputRef?: React.RefObject<HTMLTextAreaElement | HTMLInputElement | null>
 }
 
-/** A textarea or input that pops up placeholder completions when you type "{",
- *  the way Raycast's snippet editor does. ↑↓ move, ↵ or Tab insert, Esc closes. */
+/** A textarea or input that pops up placeholder completions when you type "{".
+ *  ↑↓ move, ↵ or Tab insert, Esc closes. */
 export function PlaceholderEditor({ value, onChange, completions, snippetNames = [], multiline = true, className = '', placeholder, rows = 8, required, autoFocus, spellCheck = false, inputRef }: Props) {
   const own = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null)
   const ref = (inputRef || own) as React.RefObject<HTMLTextAreaElement | HTMLInputElement | null>

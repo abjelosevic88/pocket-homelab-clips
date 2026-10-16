@@ -31,7 +31,7 @@ Run it at login with a LaunchAgent — save as `~/Library/LaunchAgents/org.pocke
 </dict></plist>
 ```
 
-**Raycast users:** [`raycast-pocket-clips.sh`](../deploy/clients/raycast-pocket-clips.sh) is a Script Command that sends the current clipboard on demand — handy if you prefer choosing what gets saved over recording everything. Your Raycast snippets and quicklinks move over with *Export* in Raycast and *Import JSON* here, and back the other way.
+**Saving on demand:** if you prefer choosing what gets saved over recording everything, bind `pbpaste | post-clip.sh` to a hotkey instead of running the watcher.
 
 ## Linux
 

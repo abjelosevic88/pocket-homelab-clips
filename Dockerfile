@@ -31,7 +31,7 @@ USER app
 WORKDIR /data
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD curl -fsS http://localhost:8080/healthz || exit 1
 LABEL org.opencontainers.image.title="Pocket Clips" \
-      org.opencontainers.image.description="Self-hosted clipboard history, snippets and quicklinks, the server side of what Raycast keeps on one Mac: searchable from every device." \
+      org.opencontainers.image.description="Self-hosted clipboard history, snippets and quicklinks, searchable from every device." \
       org.opencontainers.image.source="https://github.com/abjelosevic88/pocket-homelab-clips" \
       org.opencontainers.image.licenses="MIT"
 ENTRYPOINT ["pocket-clips"]

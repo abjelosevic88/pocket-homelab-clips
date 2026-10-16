@@ -1,6 +1,5 @@
 // Command pocket-clips is a self-hosted clipboard history, snippet library and
-// quicklink launcher, the server side of what Raycast keeps on one Mac. One
-// binary, one SQLite file, one volume.
+// quicklink launcher. One binary, one SQLite file, one volume.
 package main
 
 import (

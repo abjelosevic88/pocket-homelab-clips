@@ -32,7 +32,7 @@ CREATE TABLE settings (
 
 -- Clipboard history. One row per distinct piece of content per user: copying
 -- the same thing again bumps last_copied_at and copy_count instead of adding
--- a duplicate, so the list reads like Raycast's (newest on top, no repeats).
+-- a duplicate, so the list reads newest on top, with no repeats.
 --   kind: text | link | color | image | file
 --   content: the text itself; for images the stored file name, for files the path
 CREATE TABLE clips (

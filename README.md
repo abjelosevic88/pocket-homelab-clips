@@ -3,7 +3,7 @@
 </p>
 <h1 align="center">Pocket Clips</h1>
 <p align="center">
-  Clipboard history, snippets and quicklinks, the way Raycast does them — as a small self-hosted server, searchable from every device.<br>
+  Clipboard history, snippets and quicklinks as a small self-hosted server, searchable from every device.<br>
   <b>One binary · one SQLite file · one volume.</b>
 </p>
 <p align="center">
@@ -14,14 +14,14 @@
 
 ---
 
-Raycast keeps the three things I reach for most often — what I copied, the text I keep retyping, and the searches I run a hundred times a day — on one Mac, in one app. This is the same idea as a Go binary on your own server, so the history survives a reinstall, the iPhone can read it, and a snippet written on the laptop expands on the desktop. Built around four things:
+The three things I reach for most often — what I copied, the text I keep retyping, and the searches I run a hundred times a day — usually live in one app on one machine. This puts them in a Go binary on your own server, so the history survives a reinstall, the iPhone can read it, and a snippet written on the laptop expands on the desktop. Built around four things:
 
 - **A clipboard history that is actually searchable.** Every copy from every connected device lands in one list: text, links (with the page title looked up), colours (with a swatch), images. Copying the same thing twice moves it to the top instead of adding a duplicate. SQLite FTS5 does the finding: `inv num` finds *Invoice number 2026-001*, `ample` finds *Example*, and `#` finds your colours. Pin what matters; the rest expires on a schedule you set.
-- **Snippets with dynamic placeholders.** `{clipboard}`, `{date offset="+1w" format="EEEE"}`, `{argument name="name"}`, `{snippet name="Signature"}`, `{cursor}`, `{uuid}` — Raycast's syntax, expanded on the server, so `curl …/snippets/expand?keyword=sig | pbcopy` works from any shell and the web UI asks for arguments before copying.
+- **Snippets with dynamic placeholders.** `{clipboard}`, `{date offset="+1w" format="EEEE"}`, `{argument name="name"}`, `{snippet name="Signature"}`, `{cursor}`, `{uuid}` — expanded on the server, so `curl …/snippets/expand?keyword=sig | pbcopy` works from any shell and the web UI asks for arguments before copying.
 - **Quicklinks that take a query.** `https://github.com/search?q={Query}` opens with what you type; a keyword makes it `/go/gh?q=…`, which any browser accepts as a custom search engine. Favicons come along.
-- **One search box over all of it.** `⌘K`, type, `↑↓`, `↵`. Results come in sections with a detail pane that shows what Raycast shows: source app, device, when, how often, characters, words, size.
+- **One search box over all of it.** `⌘K`, type, `↑↓`, `↵`. Results come in sections with a detail pane that shows the source app, device, when, how often, characters, words, size.
 
-Everything is yours per user (clips always; snippets and quicklinks unless you share them), with login, SSO-proxy or no-auth modes, API tokens per device, and JSON import/export that round-trips with Raycast's own.
+Everything is yours per user (clips always; snippets and quicklinks unless you share them), with login, SSO-proxy or no-auth modes, API tokens per device, and JSON import/export.
 
 <p align="center"><img src="docs/screenshots/search.png" width="900" alt="The search box: one query, matching snippets, quicklinks and clips in sections, a detail pane on the right"></p>
 
@@ -59,8 +59,8 @@ Everything is yours per user (clips always; snippets and quicklinks unless you s
 | **Snippets** | Name, keyword, folder, pin, share. Placeholders: `{clipboard}` `{selection}` `{cursor}` `{date}` `{time}` `{datetime}` `{day}` with `format=` and `offset=`, `{argument name= default=}`, `{snippet name=}`, `{uuid}`. Server-side expansion with argument prompts, live preview in the editor, use counts. |
 | **Quicklinks** | Name, link with `{Query}` / `{argument}` / `{clipboard}`, keyword, emoji or favicon, "open with", folder, pin, share. `/go/<keyword>?q=` redirect for browser search engines. |
 | **Users** | Built-in login (admin/member), or trust your SSO proxy's header, or no login on a trusted LAN. Per-device API tokens. Shared snippets and quicklinks are read-only for others, with "Duplicate to mine". |
-| **Clients** | Watcher scripts for macOS (pbpaste + pngpaste), Linux (wl-clipboard / clipnotify), a Raycast Script Command, iOS Shortcut and PowerShell recipes. See [docs/clients.md](docs/clients.md). |
-| **Data** | SQLite backup from the UI/CLI/API, JSON export/import compatible with Raycast's Snippets and Quicklinks export, Prometheus `/metrics`, `GET /dashboard` for Homepage. |
+| **Clients** | Watcher scripts for macOS (pbpaste + pngpaste), Linux (wl-clipboard / clipnotify), iOS Shortcut and PowerShell recipes. See [docs/clients.md](docs/clients.md). |
+| **Data** | SQLite backup from the UI/CLI/API, JSON export/import (whole library, or bare snippet and quicklink arrays), Prometheus `/metrics`, `GET /dashboard` for Homepage. |
 
 ## Run it
 
@@ -136,9 +136,9 @@ curl -H "Authorization: Bearer pc_…" https://clips.example.com/api/v1/dashboar
 
 Everything else, including the Homepage `customapi` widget, is in [docs/api.md](docs/api.md).
 
-## Coming from Raycast
+## Importing an existing library
 
-Raycast → Snippets → *Export* and Raycast → Quicklinks → *Export* produce JSON files; drop them on **Import JSON** here (the arrays are recognised by their fields). *Export* here gives you the same shape back, so the library can live in both places. The clipboard history itself has no export in Raycast; the macOS watcher starts recording from the moment it runs.
+**Import JSON** takes a Pocket Clips export or a bare array of snippets (`[{name, text, keyword}]`) or quicklinks (`[{name, link, openWith}]`); the arrays are recognised by their fields. *Export* on the Snippets and Quicklinks pages gives you the same bare arrays back. The clipboard history starts with whatever the watchers record from the moment they run.
 
 ## Backups
 
@@ -163,7 +163,7 @@ Requires Go 1.22+ and Node 20+. Stack: Go + chi + modernc SQLite with FTS5 (no C
 
 ## Credits
 
-The feature set and the placeholder syntax follow [Raycast](https://www.raycast.com)'s Clipboard History, Snippets and Quicklinks, which remain the thing to use on the Mac itself; this is their server-side counterpart. Favicons are served by DuckDuckGo. Sibling projects built the same way are [Pocket Habits](https://github.com/abjelosevic88/pocket-homelab-habit-tracker), [Pocket Inventory](https://github.com/abjelosevic88/pocket-homelab-inventory), [Pocket Bookshelf](https://github.com/abjelosevic88/pocket-homelab-bookshelf), [Pocket Split](https://github.com/abjelosevic88/pocket-homelab-cost-split), [Pocket Subtitles](https://github.com/abjelosevic88/pocket-homelab-subtitles) and [Pocket Invoicing](https://github.com/abjelosevic88/pocket-homelab-invoicing).
+Favicons are served by DuckDuckGo. Sibling projects built the same way are [Pocket Habits](https://github.com/abjelosevic88/pocket-homelab-habit-tracker), [Pocket Inventory](https://github.com/abjelosevic88/pocket-homelab-inventory), [Pocket Bookshelf](https://github.com/abjelosevic88/pocket-homelab-bookshelf), [Pocket Split](https://github.com/abjelosevic88/pocket-homelab-cost-split), [Pocket Subtitles](https://github.com/abjelosevic88/pocket-homelab-subtitles) and [Pocket Invoicing](https://github.com/abjelosevic88/pocket-homelab-invoicing).
 
 ## License
 

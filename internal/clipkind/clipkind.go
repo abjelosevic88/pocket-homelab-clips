@@ -1,5 +1,5 @@
 // Package clipkind classifies clipboard content (text, link, color) and
-// measures it, the way Raycast's clipboard history shows a type per entry.
+// measures it, so the clipboard history can show a type per entry.
 package clipkind
 
 import (

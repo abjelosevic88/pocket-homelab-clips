@@ -76,7 +76,7 @@ export function QuicklinkRow({ q, hl, active, onClick, onDoubleClick }: { q: Qui
   )
 }
 
-/** Raycast-style metadata list in the detail pane. */
+/** Metadata list in the detail pane. */
 export function Meta({ rows }: { rows: [string, React.ReactNode][] }) {
   return <dl className="meta">{rows.filter(r => r[1] !== '' && r[1] !== null && r[1] !== undefined && r[1] !== 0).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
 }
@@ -174,7 +174,7 @@ export function ArgsModal({ title, args, onSubmit, onClose }: { title: string; a
   )
 }
 
-/** The footer bar with keyboard hints, like Raycast's action bar. */
+/** The footer bar with keyboard hints. */
 export function Hints({ items }: { items: [string, string][] }) {
   return <div className="hints">{items.map(([k, l]) => <span key={l}><span className="kbd">{k.replace('⌘', mod)}</span> {l}</span>)}</div>
 }

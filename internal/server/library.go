@@ -34,7 +34,7 @@ type snippetIn struct {
 	Name    string `json:"name"`
 	Keyword string `json:"keyword"`
 	Content string `json:"content"`
-	Text    string `json:"text"` // Raycast's field name, accepted as an alias
+	Text    string `json:"text"` // accepted as an alias of content
 	Folder  string `json:"folder"`
 	Shared  *bool  `json:"shared"`
 	Pinned  *bool  `json:"pinned"`
@@ -269,7 +269,7 @@ type quicklinkIn struct {
 	Link      string `json:"link"`
 	Icon      string `json:"icon"`
 	OpenWith  string `json:"open_with"`
-	OpenWith2 string `json:"openWith"` // Raycast's export field
+	OpenWith2 string `json:"openWith"` // camelCase alias of open_with
 	Folder    string `json:"folder"`
 	Shared    *bool  `json:"shared"`
 	Pinned    *bool  `json:"pinned"`

@@ -7,7 +7,7 @@ var attrRe = regexp.MustCompile(`(\w+)\s*=\s*"([^"]*)"`)
 var queryRe = regexp.MustCompile(`(?i)\{query\}`)
 
 // ParseArguments lists the {argument name="…" default="…"} placeholders of a
-// template (and {Query}, Raycast's classic quicklink placeholder, as "query"),
+// template (and {Query}, the classic quicklink placeholder, as "query"),
 // each name once, in order of first appearance.
 func ParseArguments(tpl string) []Argument {
 	out := []Argument{}
