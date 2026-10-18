@@ -315,3 +315,8 @@ button.preview.image:hover .zoom-hint { opacity: 1; }
 .lb-body img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; box-shadow: 0 20px 60px rgba(0,0,0,.5); cursor: zoom-in; }
 .lightbox.actual .lb-body { display: block; }
 .lightbox.actual .lb-body img { max-width: none; max-height: none; cursor: zoom-out; margin: 0 auto; display: block; }
+
+/* ---- the app icon is the brand mark ---- */
+.logo { background: transparent !important; overflow: visible; }
+.logo > img { width: 100%; height: 100%; display: block; filter: drop-shadow(0 1px 2px rgba(0,0,0,.2)); }
+.sidebar .brand .logo { width: 32px; height: 32px; }
