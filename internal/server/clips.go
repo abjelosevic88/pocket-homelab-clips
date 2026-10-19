@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"html"
 	"image"
 	_ "image/gif"
@@ -121,6 +122,10 @@ func (s *Server) handleCreateClip(w http.ResponseWriter, r *http.Request) {
 	status := http.StatusOK
 	if created {
 		status = http.StatusCreated
+		s.publish("clips.clip_created", fmt.Sprintf("clip:%d", c.ID), map[string]any{
+			"clip_id": c.ID, "kind": c.Kind, "title": c.Title, "source_app": c.SourceApp, "source_device": c.SourceDevice,
+			"bytes": c.Bytes, "chars": c.Chars, "words": c.Words, "lines": c.Lines, "user_id": c.UserID,
+		})
 	}
 	writeJSON(w, status, c)
 }

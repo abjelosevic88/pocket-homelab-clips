@@ -60,7 +60,7 @@ Everything is yours per user (clips always; snippets and quicklinks unless you s
 | **Quicklinks** | Name, link with `{Query}` / `{argument}` / `{clipboard}`, keyword, emoji or favicon, "open with", folder, pin, share. `/go/<keyword>?q=` redirect for browser search engines. |
 | **Users** | Built-in login (admin/member), or trust your SSO proxy's header, or no login on a trusted LAN. Per-device API tokens. Shared snippets and quicklinks are read-only for others, with "Duplicate to mine". |
 | **Clients** | Watcher scripts for macOS (pbpaste + pngpaste), Linux (wl-clipboard / clipnotify), iOS Shortcut and PowerShell recipes. See [docs/clients.md](docs/clients.md). |
-| **Data** | SQLite backup from the UI/CLI/API, JSON export/import (whole library, or bare snippet and quicklink arrays), Prometheus `/metrics`, `GET /dashboard` for Homepage. |
+| **Data** | SQLite backup from the UI/CLI/API, JSON export/import (whole library, or bare snippet and quicklink arrays), Prometheus `/metrics`, `GET /dashboard` for Homepage. With **Pocket Core** on the box: registers itself, publishes `clips.clip_created`, `clips.snippet_created` and `clips.quicklink_created`, accepts paired-phone tokens. |
 
 ## Run it
 

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -103,6 +104,9 @@ func (s *Server) handleCreateSnippet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out, _ := s.store.GetSnippet(r.Context(), x.UserID, x.ID)
+	s.publish("clips.snippet_created", fmt.Sprintf("snippet:%d", x.ID), map[string]any{
+		"snippet_id": x.ID, "name": x.Name, "keyword": x.Keyword, "folder": x.Folder, "user_id": x.UserID,
+	})
 	writeJSON(w, http.StatusCreated, out)
 }
 
@@ -337,6 +341,9 @@ func (s *Server) handleCreateQuicklink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out, _ := s.store.GetQuicklink(r.Context(), x.UserID, x.ID)
+	s.publish("clips.quicklink_created", fmt.Sprintf("quicklink:%d", x.ID), map[string]any{
+		"quicklink_id": x.ID, "name": x.Name, "keyword": x.Keyword, "folder": x.Folder, "user_id": x.UserID,
+	})
 	writeJSON(w, http.StatusCreated, out)
 }
 
