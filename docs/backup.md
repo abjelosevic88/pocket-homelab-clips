@@ -12,7 +12,7 @@ Everything lives in `DATA_DIR` (`/data` in the container):
 
 - **UI:** Settings → Backup & data → *Download database*.
 - **CLI:** `docker exec pocket-clips pocket-clips backup` (or `backup -o /data/backups/named.db`).
-- **API:** `GET /api/v1/backup` with a token.
+- **API:** `GET /api/v1/backup` with an admin's token.
 - **Portable:** Settings → Backup & data → *Export library* gives your snippets and quicklinks as JSON (add `?clips=1` for text clips too). It re-imports on any instance.
 
 All of these produce a consistent snapshot even while the app is writing. Copying `pocket-clips.db` raw while the container runs can give you a torn file because of the WAL.

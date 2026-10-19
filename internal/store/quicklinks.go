@@ -76,7 +76,7 @@ func (s *Store) GetQuicklink(ctx context.Context, userID, id int64) (*Quicklink,
 
 // GetQuicklinkByKeyword resolves a keyword: the user's own first, then shared ones.
 func (s *Store) GetQuicklinkByKeyword(ctx context.Context, userID int64, keyword string) (*Quicklink, error) {
-	return scanQuicklink(s.DB.QueryRowContext(ctx, `SELECT `+quicklinkCols+` FROM quicklinks q LEFT JOIN users u ON u.id = q.user_id WHERE q.keyword = ? AND (q.user_id = ? OR q.shared = 1) ORDER BY q.user_id = ? DESC LIMIT 1`, keyword, userID, userID))
+	return scanQuicklink(s.DB.QueryRowContext(ctx, `SELECT `+quicklinkCols+` FROM quicklinks q LEFT JOIN users u ON u.id = q.user_id WHERE q.keyword = ? AND (q.user_id = ? OR q.shared = 1) ORDER BY q.user_id = ? DESC, q.id LIMIT 1`, keyword, userID, userID))
 }
 
 // CreateQuicklink inserts a quicklink.
@@ -113,9 +113,10 @@ func (s *Store) DeleteQuicklink(ctx context.Context, userID, id int64) error {
 	return nil
 }
 
-// UseQuicklink counts an open.
-func (s *Store) UseQuicklink(ctx context.Context, id int64) {
-	_, _ = s.DB.ExecContext(ctx, `UPDATE quicklinks SET use_count = use_count + 1, last_used_at = ? WHERE id = ?`, Now(), id)
+// UseQuicklink counts an open. Only the owner's own opens count: using a
+// quicklink someone shared never writes to their row.
+func (s *Store) UseQuicklink(ctx context.Context, userID, id int64) {
+	_, _ = s.DB.ExecContext(ctx, `UPDATE quicklinks SET use_count = use_count + 1, last_used_at = ? WHERE id = ? AND user_id = ?`, Now(), id, userID)
 }
 
 // QuicklinkExists reports whether the user already has that link (for imports).

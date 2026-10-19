@@ -51,7 +51,7 @@ export default function Snippets() {
 
   const cur = items[hl]
   const set = (k: string, v: string) => { const p = new URLSearchParams(params); if (v) p.set(k, v); else p.delete(k); setParams(p, { replace: true }) }
-  const mine = (s: Snippet) => s.user_id === user?.id || user?.role === 'admin'
+  const mine = (s: Snippet) => s.user_id === user?.id
   const use = async (s: Snippet) => { if (await useSnippet(s)) load() }
   const pin = async (s: Snippet) => { await api.put(`${V1}/snippets/${s.id}`, { pinned: !s.pinned }); toast(s.pinned ? 'Unpinned' : 'Pinned'); load() }
   const remove = async (s: Snippet) => { await api.del(`${V1}/snippets/${s.id}`); setDel(null); toast('Snippet deleted'); load(); reloadMeta() }

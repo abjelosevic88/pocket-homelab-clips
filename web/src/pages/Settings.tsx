@@ -223,7 +223,8 @@ function Tokens() {
 
 function Data() {
   const { toast } = useToast()
-  const { reloadMeta } = useApp()
+  const { reloadMeta, user } = useApp()
+  const isAdmin = user?.role === 'admin'
   const [busy, setBusy] = useState(false)
   const importJSON = async (file: File) => {
     setBusy(true)
@@ -231,10 +232,10 @@ function Data() {
   }
   return (
     <div className="two-col">
-      <Card title="Backup">
-        <p className="muted">A consistent copy of the SQLite database (<code>VACUUM INTO</code>) with every user's clips, snippets and quicklinks. Images live next to it under <code>images/</code>. Restore by stopping the app and replacing <code>pocket-clips.db</code> in the data directory.</p>
+      {isAdmin && <Card title="Backup">
+        <p className="muted">A consistent copy of the SQLite database (<code>VACUUM INTO</code>) with every user's clips, snippets and quicklinks. Images live next to it under <code>images/</code>. Restore by stopping the app and replacing <code>pocket-clips.db</code> in the data directory. Admins only.</p>
         <a className="btn primary" href={`${V1}/backup`}>Download database</a>
-      </Card>
+      </Card>}
       <Card title="Export & import">
         <p className="muted">Your snippets and quicklinks as one JSON file (add your text clips with the second button). The same file, or a bare array of snippets or quicklinks, imports here; items you already have are skipped.</p>
         <div className="row wrap">
@@ -260,10 +261,11 @@ function About() {
             <tr><th>Version</th><td className="mono">{String(data.version)}</td></tr>
             <tr><th>Runtime</th><td className="mono">{String(data.go)} · {String(data.os)}/{String(data.arch)}</td></tr>
             <tr><th>Auth mode</th><td className="mono">{String(data.auth_mode)}</td></tr>
-            <tr><th>Database</th><td className="mono">{String(data.db_path)} · {fmtBytes(Number(data.db_bytes))} · images {fmtBytes(Number(data.images_bytes))}</td></tr>
+            {data.admin === true && <tr><th>Database</th><td className="mono">{String(data.db_path)} · {fmtBytes(Number(data.db_bytes))} · images {fmtBytes(Number(data.images_bytes))}</td></tr>}
             <tr><th>Timezone</th><td className="mono">{String(data.timezone)}</td></tr>
             <tr><th>Uptime</th><td className="mono">{String(data.uptime)}</td></tr>
-            <tr><th>Rows</th><td className="mono">{counts.clips} clips · {counts.snippets} snippets · {counts.quicklinks} quicklinks · {counts.users} users</td></tr>
+            <tr><th>Your rows</th><td className="mono">{counts.clips} clips · {counts.snippets} snippets · {counts.quicklinks} quicklinks</td></tr>
+            {data.admin === true && <tr><th>Users</th><td className="mono">{Number((data.box_counts as Record<string, number> | undefined)?.users ?? 0)}</td></tr>}
           </tbody>
         </table>
       )}

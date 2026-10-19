@@ -128,6 +128,18 @@ func (s *Store) Counts(ctx context.Context) map[string]int {
 	return out
 }
 
+// UserCounts returns how many clips, snippets and quicklinks one user owns.
+func (s *Store) UserCounts(ctx context.Context, userID int64) map[string]int {
+	out := map[string]int{}
+	for _, t := range []string{"clips", "snippets", "quicklinks", "api_tokens"} {
+		var n int
+		if err := s.DB.QueryRowContext(ctx, `SELECT COUNT(1) FROM `+t+` WHERE user_id = ?`, userID).Scan(&n); err == nil {
+			out[t] = n
+		}
+	}
+	return out
+}
+
 // Now returns the current UTC time formatted for storage.
 func Now() string { return time.Now().UTC().Format(time.RFC3339Nano) }
 

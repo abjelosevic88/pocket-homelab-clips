@@ -166,7 +166,7 @@ func (s *Store) DeleteClip(ctx context.Context, userID, id int64) (*Clip, error)
 	if err != nil {
 		return nil, err
 	}
-	_, err = s.DB.ExecContext(ctx, `DELETE FROM clips WHERE id = ?`, id)
+	_, err = s.DB.ExecContext(ctx, `DELETE FROM clips WHERE id = ? AND user_id = ?`, id, userID)
 	return c, err
 }
 
@@ -262,6 +262,17 @@ func (s *Store) PurgeClips(ctx context.Context, retentionDays, maxClips int) (in
 		}
 	}
 	return total, files, nil
+}
+
+// ImageInUse reports whether any clip (of any user) still points at the stored
+// image file. Image files are content-addressed, so two people who copied the
+// same picture share one file; it may only go when the last row is gone.
+func (s *Store) ImageInUse(ctx context.Context, name string) bool {
+	var n int
+	if err := s.DB.QueryRowContext(ctx, `SELECT COUNT(1) FROM clips WHERE kind = 'image' AND content = ?`, name).Scan(&n); err != nil {
+		return true // when in doubt, keep the file
+	}
+	return n > 0
 }
 
 // SetClipTitle stores a looked-up title (only if still empty).

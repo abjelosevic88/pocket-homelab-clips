@@ -105,7 +105,7 @@ func (s *Server) handleCreateSnippet(w http.ResponseWriter, r *http.Request) {
 	}
 	out, _ := s.store.GetSnippet(r.Context(), x.UserID, x.ID)
 	s.publish("clips.snippet_created", fmt.Sprintf("snippet:%d", x.ID), map[string]any{
-		"snippet_id": x.ID, "name": x.Name, "keyword": x.Keyword, "folder": x.Folder, "user_id": x.UserID,
+		"snippet_id": x.ID, "shared": x.Shared, "user_id": x.UserID, "user_email": userFrom(r.Context()).Email,
 	})
 	writeJSON(w, http.StatusCreated, out)
 }
@@ -126,7 +126,7 @@ func (s *Server) ownSnippet(w http.ResponseWriter, r *http.Request) *store.Snipp
 		s.fail(w, err, "get snippet")
 		return nil
 	}
-	if x.UserID != u.ID && u.Role != "admin" {
+	if x.UserID != u.ID { // someone else's shared snippet: visible, never editable (admins included)
 		writeErr(w, http.StatusForbidden, "only the owner can change a shared snippet")
 		return nil
 	}
@@ -203,7 +203,7 @@ func (s *Server) expand(r *http.Request, x *store.Snippet, in expandIn) snippet.
 		return o.Content, true
 	}})
 	if !queryBool(r, "dry") {
-		s.store.UseSnippet(r.Context(), x.ID)
+		s.store.UseSnippet(r.Context(), u.ID, x.ID)
 	}
 	return res
 }
@@ -342,7 +342,7 @@ func (s *Server) handleCreateQuicklink(w http.ResponseWriter, r *http.Request) {
 	}
 	out, _ := s.store.GetQuicklink(r.Context(), x.UserID, x.ID)
 	s.publish("clips.quicklink_created", fmt.Sprintf("quicklink:%d", x.ID), map[string]any{
-		"quicklink_id": x.ID, "name": x.Name, "keyword": x.Keyword, "folder": x.Folder, "user_id": x.UserID,
+		"quicklink_id": x.ID, "shared": x.Shared, "user_id": x.UserID, "user_email": userFrom(r.Context()).Email,
 	})
 	writeJSON(w, http.StatusCreated, out)
 }
@@ -363,7 +363,7 @@ func (s *Server) ownQuicklink(w http.ResponseWriter, r *http.Request) *store.Qui
 		s.fail(w, err, "get quicklink")
 		return nil
 	}
-	if x.UserID != u.ID && u.Role != "admin" {
+	if x.UserID != u.ID { // someone else's shared quicklink: visible, never editable (admins included)
 		writeErr(w, http.StatusForbidden, "only the owner can change a shared quicklink")
 		return nil
 	}
@@ -449,7 +449,7 @@ func (s *Server) handleOpenQuicklink(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"url": "", "missing": res.Missing, "arguments": x.Arguments})
 		return
 	}
-	s.store.UseQuicklink(r.Context(), x.ID)
+	s.store.UseQuicklink(r.Context(), userFrom(r.Context()).ID, x.ID)
 	writeJSON(w, http.StatusOK, map[string]any{"url": res.Text, "open_with": x.OpenWith})
 }
 
@@ -460,10 +460,13 @@ func (s *Server) handleGo(w http.ResponseWriter, r *http.Request) {
 	key := chi.URLParam(r, "key")
 	var x *store.Quicklink
 	var err error
-	if id, e := strconv.ParseInt(key, 10, 64); e == nil {
-		x, err = s.store.GetQuicklink(r.Context(), u.ID, id)
-	} else {
-		x, err = s.store.GetQuicklinkByKeyword(r.Context(), u.ID, key)
+	// The keyword wins (your own first, then shared ones); a bare number that is
+	// nobody's keyword falls back to the quicklink id.
+	x, err = s.store.GetQuicklinkByKeyword(r.Context(), u.ID, key)
+	if err != nil {
+		if id, e := strconv.ParseInt(key, 10, 64); e == nil {
+			x, err = s.store.GetQuicklink(r.Context(), u.ID, id)
+		}
 	}
 	if err != nil {
 		http.Error(w, "no quicklink "+key, http.StatusNotFound)
@@ -485,6 +488,6 @@ func (s *Server) handleGo(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	res := resolveLink(x.Link, args, "", "")
-	s.store.UseQuicklink(r.Context(), x.ID)
+	s.store.UseQuicklink(r.Context(), userFrom(r.Context()).ID, x.ID)
 	http.Redirect(w, r, res.Text, http.StatusFound)
 }

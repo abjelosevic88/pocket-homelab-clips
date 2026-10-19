@@ -106,12 +106,12 @@ func (s *Store) GetSnippet(ctx context.Context, userID, id int64) (*Snippet, err
 
 // GetSnippetByKeyword resolves a keyword: the user's own first, then shared ones.
 func (s *Store) GetSnippetByKeyword(ctx context.Context, userID int64, keyword string) (*Snippet, error) {
-	return scanSnippet(s.DB.QueryRowContext(ctx, `SELECT `+snippetCols+` FROM snippets s LEFT JOIN users u ON u.id = s.user_id WHERE s.keyword = ? AND (s.user_id = ? OR s.shared = 1) ORDER BY s.user_id = ? DESC LIMIT 1`, keyword, userID, userID), false)
+	return scanSnippet(s.DB.QueryRowContext(ctx, `SELECT `+snippetCols+` FROM snippets s LEFT JOIN users u ON u.id = s.user_id WHERE s.keyword = ? AND (s.user_id = ? OR s.shared = 1) ORDER BY s.user_id = ? DESC, s.id LIMIT 1`, keyword, userID, userID), false)
 }
 
 // GetSnippetByName resolves {snippet name="…"} references (case-insensitive).
 func (s *Store) GetSnippetByName(ctx context.Context, userID int64, name string) (*Snippet, error) {
-	return scanSnippet(s.DB.QueryRowContext(ctx, `SELECT `+snippetCols+` FROM snippets s LEFT JOIN users u ON u.id = s.user_id WHERE s.name = ? COLLATE NOCASE AND (s.user_id = ? OR s.shared = 1) ORDER BY s.user_id = ? DESC LIMIT 1`, name, userID, userID), false)
+	return scanSnippet(s.DB.QueryRowContext(ctx, `SELECT `+snippetCols+` FROM snippets s LEFT JOIN users u ON u.id = s.user_id WHERE s.name = ? COLLATE NOCASE AND (s.user_id = ? OR s.shared = 1) ORDER BY s.user_id = ? DESC, s.id LIMIT 1`, name, userID, userID), false)
 }
 
 // CreateSnippet inserts a snippet.
@@ -148,9 +148,10 @@ func (s *Store) DeleteSnippet(ctx context.Context, userID, id int64) error {
 	return nil
 }
 
-// UseSnippet counts a use.
-func (s *Store) UseSnippet(ctx context.Context, id int64) {
-	_, _ = s.DB.ExecContext(ctx, `UPDATE snippets SET use_count = use_count + 1, last_used_at = ? WHERE id = ?`, Now(), id)
+// UseSnippet counts a use. Only the owner's own uses count: expanding a
+// snippet someone shared never writes to their row.
+func (s *Store) UseSnippet(ctx context.Context, userID, id int64) {
+	_, _ = s.DB.ExecContext(ctx, `UPDATE snippets SET use_count = use_count + 1, last_used_at = ? WHERE id = ? AND user_id = ?`, Now(), id, userID)
 }
 
 // SnippetExists reports whether the user already has that name+content (for imports).

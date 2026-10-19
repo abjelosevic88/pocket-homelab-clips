@@ -146,7 +146,7 @@ The database is a single file.
 
 - **UI:** Settings → Backup & data → *Download database* (a consistent `VACUUM INTO` copy).
 - **CLI:** `docker exec pocket-clips pocket-clips backup` writes to `/data/backups/`.
-- **API:** `GET /api/v1/backup`.
+- **API:** `GET /api/v1/backup` (admin only).
 - **Export:** the library as JSON (snippets, quicklinks, optionally clips), re-importable.
 
 Restic / Borg / Backrest users: back up `DATA_DIR`, but snapshot the live `pocket-clips.db` through one of the methods above rather than copying the WAL files raw. See [docs/backup.md](docs/backup.md).

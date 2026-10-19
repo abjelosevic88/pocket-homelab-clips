@@ -50,7 +50,7 @@ export default function Quicklinks() {
 
   const cur = items[hl]
   const set = (k: string, v: string) => { const p = new URLSearchParams(params); if (v) p.set(k, v); else p.delete(k); setParams(p, { replace: true }) }
-  const mine = (x: Quicklink) => x.user_id === user?.id || user?.role === 'admin'
+  const mine = (x: Quicklink) => x.user_id === user?.id
   const open = async (x: Quicklink) => { if (await openQuicklink(x)) load() }
   const pin = async (x: Quicklink) => { await api.put(`${V1}/quicklinks/${x.id}`, { pinned: !x.pinned }); toast(x.pinned ? 'Unpinned' : 'Pinned'); load() }
   const remove = async (x: Quicklink) => { await api.del(`${V1}/quicklinks/${x.id}`); setDel(null); toast('Quicklink deleted'); load(); reloadMeta() }

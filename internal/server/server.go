@@ -230,9 +230,15 @@ func (s *Server) janitor(ctx context.Context) {
 	}
 }
 
+// removeImages deletes image files whose clip rows are gone. Files are
+// content-addressed and may back another user's clip too, so a file still
+// referenced by any row stays.
 func (s *Server) removeImages(files []string) {
 	for _, f := range files {
 		if f == "" || strings.ContainsAny(f, "/\\") {
+			continue
+		}
+		if s.store.ImageInUse(context.Background(), f) {
 			continue
 		}
 		_ = os.Remove(filepath.Join(s.cfg.ImagesDir, f))

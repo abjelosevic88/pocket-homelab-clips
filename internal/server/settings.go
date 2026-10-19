@@ -64,7 +64,19 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.publicSettings(in))
 }
 
+// handleSystemInfo: everyone sees the build and their own row counts; the
+// box details (paths, sizes, Core link, totals across users) are admin-only.
 func (s *Server) handleSystemInfo(w http.ResponseWriter, r *http.Request) {
+	u := userFrom(r.Context())
+	out := map[string]any{
+		"version": Version, "go": runtime.Version(), "os": runtime.GOOS, "arch": runtime.GOARCH,
+		"auth_mode": s.cfg.AuthMode, "uptime": time.Since(s.started).Round(time.Second).String(), "timezone": time.Now().Location().String(),
+		"counts": s.store.UserCounts(r.Context(), u.ID), "admin": u.Role == "admin",
+	}
+	if u.Role != "admin" {
+		writeJSON(w, http.StatusOK, out)
+		return
+	}
 	var size, images int64
 	if fi, err := os.Stat(s.cfg.DBPath); err == nil {
 		size = fi.Size()
@@ -76,16 +88,17 @@ func (s *Server) handleSystemInfo(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"version": Version, "go": runtime.Version(), "os": runtime.GOOS, "arch": runtime.GOARCH,
-		"core":      s.coreStatus(),
-		"auth_mode": s.cfg.AuthMode, "data_dir": s.cfg.DataDir, "db_path": s.cfg.DBPath, "db_bytes": size, "images_bytes": images,
-		"uptime": time.Since(s.started).Round(time.Second).String(), "timezone": time.Now().Location().String(),
-		"counts": s.store.Counts(r.Context()),
-	})
+	out["core"], out["data_dir"], out["db_path"], out["db_bytes"], out["images_bytes"] = s.coreStatus(), s.cfg.DataDir, s.cfg.DBPath, size, images
+	out["box_counts"] = s.store.Counts(r.Context())
+	writeJSON(w, http.StatusOK, out)
 }
 
+// handleBackup streams the whole database (every user's data): box
+// administration, so admins only.
 func (s *Server) handleBackup(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAdmin(w, r) {
+		return
+	}
 	dir := filepath.Join(s.cfg.DataDir, "backups")
 	name := fmt.Sprintf("pocket-clips-%s.db", time.Now().Format("20060102-150405"))
 	dst := filepath.Join(dir, name)
