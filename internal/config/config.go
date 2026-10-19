@@ -39,6 +39,14 @@ type Config struct {
 	AdminPassword        string
 	AdminName            string
 
+	// Sign in with an OpenID Connect provider. On a box with Pocket Core none
+	// of these are needed: the app uses the client Core issued at registration.
+	OIDCIssuer       string
+	OIDCClientID     string
+	OIDCClientSecret string
+	OIDCName         string // button label
+	OIDCAutoCreate   bool   // unknown (verified) emails get a member account
+
 	// Pocket Core: when CORE_URL is set the app registers itself on start,
 	// publishes events and accepts the tokens Core hands to paired phones.
 	CoreURL             string
@@ -121,6 +129,12 @@ func Load() (*Config, error) {
 		AdminPassword:        env("ADMIN_PASSWORD", ""),
 		AdminName:            env("ADMIN_NAME", "Admin"),
 
+		OIDCIssuer:       strings.TrimRight(env("OIDC_ISSUER", ""), "/"),
+		OIDCClientID:     env("OIDC_CLIENT_ID", ""),
+		OIDCClientSecret: env("OIDC_CLIENT_SECRET", ""),
+		OIDCName:         env("OIDC_NAME", "single sign-on"),
+		OIDCAutoCreate:   envBool("OIDC_AUTO_CREATE", true),
+
 		CoreURL:             strings.TrimRight(env("CORE_URL", ""), "/"),
 		CoreRegistrationKey: env("CORE_REGISTRATION_KEY", ""),
 		CoreAppURL:          strings.TrimRight(env("CORE_APP_URL", ""), "/"),
@@ -140,6 +154,9 @@ func Load() (*Config, error) {
 	}
 	if c.MaxClipBytes < 1024 {
 		return nil, fmt.Errorf("MAX_CLIP_BYTES too small: %d", c.MaxClipBytes)
+	}
+	if c.OIDCIssuer != "" && (c.OIDCClientID == "" || c.BaseURL == "") {
+		return nil, fmt.Errorf("OIDC_ISSUER needs OIDC_CLIENT_ID and BASE_URL (the callback is BASE_URL/api/v1/auth/oidc/callback)")
 	}
 	return c, nil
 }
