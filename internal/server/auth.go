@@ -8,8 +8,8 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/abjelosevic88/pocket-homelab-clips/internal/core"
 	"github.com/abjelosevic88/pocket-homelab-clips/internal/store"
+	core "github.com/abjelosevic88/pocket-homelab-core/sdk"
 )
 
 type ctxKey int
