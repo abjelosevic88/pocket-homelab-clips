@@ -40,7 +40,7 @@ func newFakeCore(t *testing.T) *fakeCore {
 			_ = json.NewEncoder(w).Encode(map[string]any{"active": false})
 			return
 		}
-		_ = json.NewEncoder(w).Encode(map[string]any{"active": true, "kind": "device", "user": map[string]any{"id": 1, "email": who + "@example.com", "name": who}})
+		_ = json.NewEncoder(w).Encode(map[string]any{"active": true, "kind": "device", "user": map[string]any{"id": 1, "sub": who, "email": who + "@example.com", "name": who}})
 	})
 	mux.HandleFunc("/api/v1/events", func(w http.ResponseWriter, r *http.Request) {
 		var e map[string]any
@@ -89,6 +89,9 @@ func newPerUserHarness(t *testing.T) *peruserHarness {
 	t.Cleanup(func() { st.Close() })
 	_ = os.MkdirAll(cfg.ImagesDir, 0o755)
 	s := New(cfg, st, log, nil)
+	if err := s.core.Start(t.Context()); err != nil {
+		t.Fatal(err)
+	}
 	ts := httptest.NewServer(s.Router())
 	t.Cleanup(ts.Close)
 
