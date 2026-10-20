@@ -1,6 +1,7 @@
 package server
 
 import (
+	"database/sql"
 	"fmt"
 	"io"
 	"net/http"
@@ -95,7 +96,11 @@ func (s *Server) handleCreateSnippet(w http.ResponseWriter, r *http.Request) {
 	if !in.apply(x, w) {
 		return
 	}
-	if err := s.store.CreateSnippet(r.Context(), x); err != nil {
+	if err := s.store.CreateSnippet(r.Context(), x, func(tx *sql.Tx) error {
+		return s.queueEvent(r.Context(), tx, "clips.snippet_created", fmt.Sprintf("snippet:%d", x.ID), map[string]any{
+			"snippet_id": x.ID, "shared": x.Shared, "user_id": x.UserID, "user_email": userFrom(r.Context()).Email,
+		})
+	}); err != nil {
 		if err == store.ErrConflict {
 			writeErr(w, http.StatusConflict, "you already have a snippet with that keyword")
 			return
@@ -104,9 +109,6 @@ func (s *Server) handleCreateSnippet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out, _ := s.store.GetSnippet(r.Context(), x.UserID, x.ID)
-	s.publish("clips.snippet_created", fmt.Sprintf("snippet:%d", x.ID), map[string]any{
-		"snippet_id": x.ID, "shared": x.Shared, "user_id": x.UserID, "user_email": userFrom(r.Context()).Email,
-	})
 	writeJSON(w, http.StatusCreated, out)
 }
 
@@ -332,7 +334,11 @@ func (s *Server) handleCreateQuicklink(w http.ResponseWriter, r *http.Request) {
 	if !in.apply(x, w) {
 		return
 	}
-	if err := s.store.CreateQuicklink(r.Context(), x); err != nil {
+	if err := s.store.CreateQuicklink(r.Context(), x, func(tx *sql.Tx) error {
+		return s.queueEvent(r.Context(), tx, "clips.quicklink_created", fmt.Sprintf("quicklink:%d", x.ID), map[string]any{
+			"quicklink_id": x.ID, "shared": x.Shared, "user_id": x.UserID, "user_email": userFrom(r.Context()).Email,
+		})
+	}); err != nil {
 		if err == store.ErrConflict {
 			writeErr(w, http.StatusConflict, "you already have a quicklink with that keyword")
 			return
@@ -341,9 +347,6 @@ func (s *Server) handleCreateQuicklink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out, _ := s.store.GetQuicklink(r.Context(), x.UserID, x.ID)
-	s.publish("clips.quicklink_created", fmt.Sprintf("quicklink:%d", x.ID), map[string]any{
-		"quicklink_id": x.ID, "shared": x.Shared, "user_id": x.UserID, "user_email": userFrom(r.Context()).Email,
-	})
 	writeJSON(w, http.StatusCreated, out)
 }
 

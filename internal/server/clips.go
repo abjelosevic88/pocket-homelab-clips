@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"html"
@@ -109,7 +110,12 @@ func (s *Server) handleCreateClip(w http.ResponseWriter, r *http.Request) {
 		c.Bytes, c.Chars, c.Words, c.Lines = clipkind.Stats(c.Content)
 	}
 	c.Title = clipkind.FirstLine(c.Title, 200)
-	created, err := s.store.AddClip(r.Context(), c)
+	created, err := s.store.AddClip(r.Context(), c, func(tx *sql.Tx) error {
+		return s.queueEvent(r.Context(), tx, "clips.clip_created", fmt.Sprintf("clip:%d", c.ID), map[string]any{
+			"clip_id": c.ID, "kind": c.Kind, "source_app": c.SourceApp, "source_device": c.SourceDevice,
+			"bytes": c.Bytes, "chars": c.Chars, "words": c.Words, "lines": c.Lines, "user_id": c.UserID, "user_email": u.Email,
+		})
+	})
 	if err != nil {
 		s.fail(w, err, "add clip")
 		return
@@ -122,10 +128,6 @@ func (s *Server) handleCreateClip(w http.ResponseWriter, r *http.Request) {
 	status := http.StatusOK
 	if created {
 		status = http.StatusCreated
-		s.publish("clips.clip_created", fmt.Sprintf("clip:%d", c.ID), map[string]any{
-			"clip_id": c.ID, "kind": c.Kind, "source_app": c.SourceApp, "source_device": c.SourceDevice,
-			"bytes": c.Bytes, "chars": c.Chars, "words": c.Words, "lines": c.Lines, "user_id": c.UserID, "user_email": u.Email,
-		})
 	}
 	writeJSON(w, status, c)
 }

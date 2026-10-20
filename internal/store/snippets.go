@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	core "github.com/abjelosevic88/pocket-homelab-core/sdk"
 	"strings"
 )
 
@@ -115,13 +116,18 @@ func (s *Store) GetSnippetByName(ctx context.Context, userID int64, name string)
 }
 
 // CreateSnippet inserts a snippet.
-func (s *Store) CreateSnippet(ctx context.Context, x *Snippet) error {
-	res, err := s.DB.ExecContext(ctx, `INSERT INTO snippets (user_id, name, keyword, content, folder, shared, pinned) VALUES (?, ?, ?, ?, ?, ?, ?)`, x.UserID, x.Name, x.Keyword, x.Content, x.Folder, boolInt(x.Shared), boolInt(x.Pinned))
+func (s *Store) CreateSnippet(ctx context.Context, x *Snippet, after ...core.CommitHook) error {
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	res, err := tx.ExecContext(ctx, `INSERT INTO snippets (user_id, name, keyword, content, folder, shared, pinned) VALUES (?, ?, ?, ?, ?, ?, ?)`, x.UserID, x.Name, x.Keyword, x.Content, x.Folder, boolInt(x.Shared), boolInt(x.Pinned))
 	if err != nil {
 		return conflict(err)
 	}
 	x.ID, _ = res.LastInsertId()
-	return nil
+	return core.Commit(tx, after...)
 }
 
 // UpdateSnippet saves an owner's edits.

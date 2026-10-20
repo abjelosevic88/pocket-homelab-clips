@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	core "github.com/abjelosevic88/pocket-homelab-core/sdk"
 	"strings"
 )
 
@@ -80,13 +81,18 @@ func (s *Store) GetQuicklinkByKeyword(ctx context.Context, userID int64, keyword
 }
 
 // CreateQuicklink inserts a quicklink.
-func (s *Store) CreateQuicklink(ctx context.Context, x *Quicklink) error {
-	res, err := s.DB.ExecContext(ctx, `INSERT INTO quicklinks (user_id, name, keyword, link, icon, open_with, folder, shared, pinned) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, x.UserID, x.Name, x.Keyword, x.Link, x.Icon, x.OpenWith, x.Folder, boolInt(x.Shared), boolInt(x.Pinned))
+func (s *Store) CreateQuicklink(ctx context.Context, x *Quicklink, after ...core.CommitHook) error {
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	res, err := tx.ExecContext(ctx, `INSERT INTO quicklinks (user_id, name, keyword, link, icon, open_with, folder, shared, pinned) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, x.UserID, x.Name, x.Keyword, x.Link, x.Icon, x.OpenWith, x.Folder, boolInt(x.Shared), boolInt(x.Pinned))
 	if err != nil {
 		return conflict(err)
 	}
 	x.ID, _ = res.LastInsertId()
-	return nil
+	return core.Commit(tx, after...)
 }
 
 // UpdateQuicklink saves an owner's edits.

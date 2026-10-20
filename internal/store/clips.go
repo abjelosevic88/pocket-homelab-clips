@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	core "github.com/abjelosevic88/pocket-homelab-core/sdk"
 	"strings"
 	"time"
 )
@@ -43,37 +44,42 @@ func HashContent(kind, content string) string {
 
 // AddClip inserts a clip or, when the same content was copied before, bumps
 // that row to the top. Returns the stored clip and whether it was new.
-func (s *Store) AddClip(ctx context.Context, c *Clip) (bool, error) {
+func (s *Store) AddClip(ctx context.Context, c *Clip, after ...core.CommitHook) (bool, error) {
 	c.Content = strings.TrimRight(c.Content, "\n")
 	if c.Content == "" {
 		return false, fmt.Errorf("empty content")
 	}
+	tx, err := s.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback()
 	hash := HashContent(c.Kind, c.Content)
 	now := Now()
 	var existing int64
-	err := s.DB.QueryRowContext(ctx, `SELECT id FROM clips WHERE user_id = ? AND content_hash = ?`, c.UserID, hash).Scan(&existing)
+	err = tx.QueryRowContext(ctx, `SELECT id FROM clips WHERE user_id = ? AND content_hash = ?`, c.UserID, hash).Scan(&existing)
 	if err == nil {
-		_, err = s.DB.ExecContext(ctx, `UPDATE clips SET last_copied_at = ?, copy_count = copy_count + 1,
+		_, err = tx.ExecContext(ctx, `UPDATE clips SET last_copied_at = ?, copy_count = copy_count + 1,
 			source_app = CASE WHEN ? <> '' THEN ? ELSE source_app END,
 			source_device = CASE WHEN ? <> '' THEN ? ELSE source_device END WHERE id = ?`, now, c.SourceApp, c.SourceApp, c.SourceDevice, c.SourceDevice, existing)
 		if err != nil {
 			return false, err
 		}
-		got, err := s.GetClip(ctx, c.UserID, existing)
+		got, err := scanClip(tx.QueryRowContext(ctx, `SELECT `+clipCols+` FROM clips c WHERE c.id=? AND c.user_id=?`, existing, c.UserID), false)
 		if err != nil {
 			return false, err
 		}
 		*c = *got
-		return false, nil
+		return false, tx.Commit()
 	}
-	res, err := s.DB.ExecContext(ctx, `INSERT INTO clips (user_id, kind, content, content_hash, title, source_app, source_device, bytes, chars, words, lines, width, height, first_copied_at, last_copied_at)
+	res, err := tx.ExecContext(ctx, `INSERT INTO clips (user_id, kind, content, content_hash, title, source_app, source_device, bytes, chars, words, lines, width, height, first_copied_at, last_copied_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, c.UserID, c.Kind, c.Content, hash, c.Title, c.SourceApp, c.SourceDevice, c.Bytes, c.Chars, c.Words, c.Lines, c.Width, c.Height, now, now)
 	if err != nil {
 		return false, conflict(err)
 	}
 	c.ID, _ = res.LastInsertId()
 	c.FirstCopiedAt, c.LastCopiedAt, c.CopyCount = now, now, 1
-	return true, nil
+	return true, core.Commit(tx, after...)
 }
 
 // GetClip returns one clip of the user.
