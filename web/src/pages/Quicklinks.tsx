@@ -7,7 +7,9 @@ import { useApp } from '../lib/app-context'
 import { copyText } from '../lib/clipboard'
 import { plural } from '../lib/format'
 import { Favicon, Hints, QuicklinkMeta, QuicklinkRow, Template, useMedia } from '../components/items'
-import { Confirm, Field, Modal, PageHeader, useToast } from '../components/ui'
+import { Icon } from '../components/icons'
+import { announceChange, useOnChange } from '../lib/events'
+import { Confirm, Field, Modal, PageHeader, Switch, useToast } from '../components/ui'
 import { PlaceholderEditor, QUICKLINK_COMPLETIONS } from '../components/PlaceholderEditor'
 
 export default function Quicklinks() {
@@ -40,23 +42,24 @@ export default function Quicklinks() {
     } catch (e) { if ((e as Error).name !== 'AbortError') toast((e as Error).message, 'err') }
   }, [q, folder]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const t = setTimeout(load, q ? 60 : 0); return () => clearTimeout(t) }, [load, q])
+  useOnChange(load)
   useEffect(() => { list.current?.querySelector<HTMLElement>(`[data-i="${hl}"]`)?.scrollIntoView({ block: 'nearest' }) }, [hl])
   useEffect(() => {
     const id = params.get('edit')
     if (id) api.get<Quicklink>(`${V1}/quicklinks/${id}`).then(setEdit).catch(() => {})
     if (params.get('new')) setEdit({ link: params.get('link') || '', name: params.get('name') || '' })
     if (id || params.get('new')) { const p = new URLSearchParams(params); ['edit', 'new', 'link', 'name'].forEach(k => p.delete(k)); setParams(p, { replace: true }) }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [params.get('new'), params.get('edit')]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const cur = items[hl]
   const set = (k: string, v: string) => { const p = new URLSearchParams(params); if (v) p.set(k, v); else p.delete(k); setParams(p, { replace: true }) }
   const mine = (x: Quicklink) => x.user_id === user?.id
   const open = async (x: Quicklink) => { if (await openQuicklink(x)) load() }
-  const pin = async (x: Quicklink) => { await api.put(`${V1}/quicklinks/${x.id}`, { pinned: !x.pinned }); toast(x.pinned ? 'Unpinned' : 'Pinned'); load() }
-  const remove = async (x: Quicklink) => { await api.del(`${V1}/quicklinks/${x.id}`); setDel(null); toast('Quicklink deleted'); load(); reloadMeta() }
+  const pin = async (x: Quicklink) => { await api.put(`${V1}/quicklinks/${x.id}`, { pinned: !x.pinned }); toast(x.pinned ? 'Unpinned' : 'Pinned'); load(); announceChange() }
+  const remove = async (x: Quicklink) => { await api.del(`${V1}/quicklinks/${x.id}`); setDel(null); toast('Quicklink deleted'); load(); reloadMeta(); announceChange() }
   const copyGo = (x: Quicklink) => { copyText(`${location.origin}/go/${x.keyword || x.id}?q=%s`); toast('Search-engine URL copied — add it to your browser with %s as the query') }
   const importFile = async (f: File) => {
-    try { const r = await api.post<Record<string, number>>(`${V1}/import`, JSON.parse(await f.text())); toast(`Imported ${plural(r.quicklinks, 'quicklink')}${r.snippets ? `, ${plural(r.snippets, 'snippet')}` : ''}${r.skipped ? `, ${r.skipped} skipped` : ''}`); load(); reloadMeta() } catch (e) { toast((e as Error).message, 'err') }
+    try { const r = await api.post<Record<string, number>>(`${V1}/import`, JSON.parse(await f.text())); toast(`Imported ${plural(r.quicklinks, 'quicklink')}${r.snippets ? `, ${plural(r.snippets, 'snippet')}` : ''}${r.skipped ? `, ${r.skipped} skipped` : ''}`); load(); reloadMeta(); announceChange() } catch (e) { toast((e as Error).message, 'err') }
   }
   const onKey = (e: React.KeyboardEvent) => {
     const meta = e.metaKey || e.ctrlKey
@@ -70,14 +73,14 @@ export default function Quicklinks() {
 
   const detail = cur && (
     <div className="detail-body">
-      <div className="preview row" style={{ gap: 12, alignItems: 'flex-start' }}><Favicon q={cur} size={28} /><code className="break"><Template text={cur.link} /></code></div>
+      <div className="preview quicklink"><Favicon q={cur} size={28} /><code className="break"><Template text={cur.link} /></code></div>
       <QuicklinkMeta q={cur} />
-      <div className="row wrap mt">
-        <button className="btn primary" onClick={() => open(cur)}>Open</button>
-        <button className="btn" onClick={() => { copyText(cur.link); toast('Link copied') }}>Copy link</button>
-        {cur.arguments.length > 0 && <button className="btn" onClick={() => copyGo(cur)} title="Use this quicklink as a custom search engine in your browser">Copy search URL</button>}
-        {mine(cur) && <><button className="btn" onClick={() => setEdit(cur)}>Edit</button><button className="btn" onClick={() => pin(cur)}>{cur.pinned ? 'Unpin' : 'Pin'}</button><button className="btn ghost sm danger-text" onClick={() => setDel(cur)}>Delete</button></>}
-        {!mine(cur) && <button className="btn" onClick={() => setEdit({ name: cur.name, link: cur.link, icon: cur.icon, folder: cur.folder })}>Duplicate to mine</button>}
+      <div className="detail-actions">
+        <button type="button" className="btn primary" onClick={() => open(cur)}><Icon name="external" size={15} />Open</button>
+        <button type="button" className="btn" onClick={() => { copyText(cur.link); toast('Link copied') }}><Icon name="link" size={15} />Copy link</button>
+        {cur.arguments.length > 0 && <button type="button" className="btn" onClick={() => copyGo(cur)} title="Use this quicklink as a custom search engine in your browser"><Icon name="search" size={15} />Copy search URL</button>}
+        {mine(cur) && <><button type="button" className="btn" onClick={() => setEdit(cur)}><Icon name="edit" size={15} />Edit</button><button type="button" className="btn" onClick={() => pin(cur)}><Icon name="pushpin" size={15} />{cur.pinned ? 'Unpin' : 'Pin'}</button><button type="button" className="btn ghost danger-text" onClick={() => setDel(cur)}><Icon name="trash" size={15} />Delete</button></>}
+        {!mine(cur) && <button type="button" className="btn" onClick={() => setEdit({ name: cur.name, link: cur.link, icon: cur.icon, folder: cur.folder })}><Icon name="copy" size={15} />Duplicate to mine</button>}
       </div>
     </div>
   )
@@ -85,21 +88,21 @@ export default function Quicklinks() {
   return (
     <>
       <PageHeader title="Quicklinks" sub={`${plural(total, 'quicklink')} · use {Query} or {argument name="x"} in the URL to be asked for input`} actions={<>
-        <button className="btn" onClick={() => fileInput.current?.click()}>Import JSON</button>
-        <input ref={fileInput} type="file" accept="application/json,.json" hidden onChange={e => e.target.files?.[0] && importFile(e.target.files[0])} />
-        <a className="btn" href={`${V1}/export?what=quicklinks&bare=1`}>Export</a>
-        <button className="btn primary" onClick={() => setEdit({})}>+ New quicklink</button>
+        <button type="button" className="btn" onClick={() => fileInput.current?.click()}><Icon name="upload" size={15} />Import JSON</button>
+        <input ref={fileInput} type="file" accept="application/json,.json" hidden onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) importFile(f) }} />
+        <a className="btn" href={`${V1}/export?what=quicklinks&bare=1`}><Icon name="download" size={15} />Export</a>
+        <button type="button" className="btn primary" onClick={() => setEdit({})}><Icon name="plus" size={15} strokeWidth={2.2} />New quicklink</button>
       </>} />
-      <div className="palette page">
-        <div className="pal-search">
-          <span className="ico">⌕</span>
+      <div className="finder page">
+        <div className="fd-search">
+          <Icon name="search" size={18} />
           <input value={q} onChange={e => set('q', e.target.value)} onKeyDown={onKey} placeholder="Search quicklinks by name, keyword or URL…" autoFocus autoComplete="off" spellCheck={false} aria-label="Search quicklinks" />
-          {q && <button className="btn ghost sm clear" onClick={() => set('q', '')} aria-label="Clear">✕</button>}
+          {q && <button type="button" className="btn ghost icon-only sm clear" onClick={() => set('q', '')} aria-label="Clear"><Icon name="x" size={16} /></button>}
         </div>
-        {folders.length > 0 && <div className="chips mb"><button className={`chip ${!folder ? 'active' : ''}`} onClick={() => set('folder', '')}>All</button>{folders.map(f => <button key={f} className={`chip ${folder === f ? 'active' : ''}`} onClick={() => set('folder', f)}>{f}</button>)}</div>}
-        <div className={`pal-body ${cur ? 'has-detail' : ''}`}>
-          <div className="pal-list" ref={list} role="listbox">
-            {items.length === 0 && <div className="empty"><h3>{q ? 'No matches' : 'No quicklinks yet'}</h3><p className="muted">{q ? '' : 'Create one, or import a JSON array of quicklinks.'}</p></div>}
+        {folders.length > 0 && <div className="fd-chips"><button type="button" className={`chip ${!folder ? 'active' : ''}`} onClick={() => set('folder', '')}>All</button>{folders.map(f => <button type="button" key={f} className={`chip ${folder === f ? 'active' : ''}`} onClick={() => set('folder', f)}><Icon name="folder" size={13} />{f}</button>)}</div>}
+        <div className={`fd-body ${cur ? 'has-detail' : ''}`}>
+          <div className="fd-list" ref={list} role="listbox">
+            {items.length === 0 && <div className="empty fd-empty"><div className="empty-ico"><Icon name={q ? 'search' : 'zap'} size={22} /></div><h3>{q ? 'No matches' : 'No quicklinks yet'}</h3><p className="muted">{q ? '' : 'Create one, or import a JSON array of quicklinks.'}</p></div>}
             {items.map((x, i) => <div key={x.id} data-i={i}><QuicklinkRow q={x} hl={i === hl} onClick={() => { setHl(i); if (narrow) setSheet(true) }} onDoubleClick={() => open(x)} /></div>)}
           </div>
           {!narrow && cur && <aside className="detail">{detail}</aside>}
@@ -107,7 +110,7 @@ export default function Quicklinks() {
         <Hints items={[['↵', 'Open'], ['⌘↵', 'Copy link'], ['⌘E', 'Edit'], ['⌘P', 'Pin']]} />
       </div>
       {narrow && sheet && cur && <Modal title={cur.name} onClose={() => setSheet(false)}>{detail}</Modal>}
-      {edit && <QuicklinkModal x={edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); load(); reloadMeta() }} />}
+      {edit && <QuicklinkModal x={edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); load(); reloadMeta(); announceChange() }} />}
       {del && <Confirm title={`Delete “${del.name}”?`} message="The quicklink is removed for everyone it was shared with." onCancel={() => setDel(null)} onConfirm={() => remove(del)} />}
       {prompt}
     </>
@@ -151,8 +154,8 @@ function QuicklinkModal({ x, onClose, onSaved }: { x: Partial<Quicklink>; onClos
           <Field label="Folder"><input value={f.folder} onChange={e => setF({ ...f, folder: e.target.value })} list="folders-ql" maxLength={60} /><datalist id="folders-ql">{folders.quicklinks.map(x => <option key={x} value={x} />)}</datalist></Field>
         </div>
         <div className="row wrap" style={{ gap: 18 }}>
-          <label className="row"><input type="checkbox" checked={f.shared} onChange={e => setF({ ...f, shared: e.target.checked })} style={{ width: 'auto' }} /> Share with other users</label>
-          <label className="row"><input type="checkbox" checked={f.pinned} onChange={e => setF({ ...f, pinned: e.target.checked })} style={{ width: 'auto' }} /> Pin to the top</label>
+          <div className="check-row"><Switch checked={f.shared} onChange={v => setF({ ...f, shared: v })} label="Share with other users" /><span>Share with other users</span></div>
+          <div className="check-row"><Switch checked={f.pinned} onChange={v => setF({ ...f, pinned: v })} label="Pin to the top" /><span>Pin to the top</span></div>
         </div>
         <div className="form-actions"><button type="button" className="btn" onClick={onClose}>Cancel</button><button className="btn primary" disabled={busy}>{x.id ? 'Save' : 'Create'}</button></div>
       </form>

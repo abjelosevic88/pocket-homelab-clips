@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { api, V1 } from '../lib/api'
 import type { Clip, Quicklink, SearchResult, Snippet } from '../lib/types'
 import { useActions } from '../lib/actions'
 import { copyText } from '../lib/clipboard'
 import { ClipMeta, ClipPreview, ClipRow, Hints, QuicklinkMeta, QuicklinkRow, SnippetMeta, SnippetRow, Template, useMedia } from '../components/items'
 import { Modal } from '../components/ui'
+import { Icon } from '../components/icons'
+import { useOnChange } from '../lib/events'
 
 type Row = { kind: 'clip'; item: Clip } | { kind: 'snippet'; item: Snippet } | { kind: 'quicklink'; item: Quicklink }
 
@@ -36,6 +38,10 @@ export default function Search() {
   }, [toast])
   useEffect(() => { const t = setTimeout(() => load(q), q ? 60 : 0); return () => clearTimeout(t) }, [q, load])
   useEffect(() => { input.current?.focus() }, [])
+  // the palette's "Search everything for …" lands here with ?q=
+  const loc = useLocation()
+  useEffect(() => { const v = new URLSearchParams(loc.search).get('q'); if (v !== null) { setQ(v); input.current?.focus() } }, [loc.key]) // eslint-disable-line react-hooks/exhaustive-deps
+  useOnChange(() => load(q))
 
   const rows = useMemo<Row[]>(() => {
     if (!res) return []
@@ -98,28 +104,28 @@ export default function Search() {
       {cur.kind === 'clip' && <><ClipPreview c={cur.item} /><ClipMeta c={cur.item} /></>}
       {cur.kind === 'snippet' && <><pre className="preview text"><Template text={cur.item.content} /></pre><SnippetMeta s={cur.item} /></>}
       {cur.kind === 'quicklink' && <><div className="preview"><code className="break"><Template text={cur.item.link} /></code></div><QuicklinkMeta q={cur.item} /></>}
-      <div className="row wrap mt">
-        <button className="btn primary" onClick={() => primary(cur)}>{cur.kind === 'clip' ? 'Copy' : cur.kind === 'snippet' ? 'Copy expanded' : 'Open'}</button>
-        <button className="btn" onClick={() => secondary(cur)}>{cur.kind === 'clip' ? (cur.item.kind === 'link' ? 'Open link' : cur.item.pinned ? 'Unpin' : 'Pin') : cur.kind === 'snippet' ? 'Copy template' : 'Copy link'}</button>
-        {cur.kind !== 'clip' && <button className="btn" onClick={() => navigate(`/${cur.kind}s?edit=${cur.item.id}`)}>Edit</button>}
-        {cur.kind === 'clip' && <button className="btn ghost danger-text" onClick={() => remove(cur)}>Delete</button>}
+      <div className="detail-actions">
+        <button type="button" className="btn primary" onClick={() => primary(cur)}><Icon name={cur.kind === 'quicklink' ? 'external' : 'copy'} size={15} />{cur.kind === 'clip' ? 'Copy' : cur.kind === 'snippet' ? 'Copy expanded' : 'Open'}</button>
+        <button type="button" className="btn" onClick={() => secondary(cur)}>{cur.kind === 'clip' ? (cur.item.kind === 'link' ? <><Icon name="external" size={15} />Open link</> : <><Icon name="pushpin" size={15} />{cur.item.pinned ? 'Unpin' : 'Pin'}</>) : cur.kind === 'snippet' ? <><Icon name="code" size={15} />Copy template</> : <><Icon name="link" size={15} />Copy link</>}</button>
+        {cur.kind !== 'clip' && <button type="button" className="btn" onClick={() => navigate(`/${cur.kind}s?edit=${cur.item.id}`)}><Icon name="edit" size={15} />Edit</button>}
+        {cur.kind === 'clip' && <button type="button" className="btn ghost danger-text" onClick={() => remove(cur)}><Icon name="trash" size={15} />Delete</button>}
       </div>
     </div>
   )
 
   return (
-    <div className="palette">
-      <div className="pal-search">
-        <span className="ico">⌕</span>
+    <div className="finder">
+      <div className="fd-search">
+        <Icon name="search" size={18} />
         <input ref={input} value={q} onChange={e => setQ(e.target.value)} onKeyDown={onKey} placeholder="Search clipboard, snippets and quicklinks…" autoComplete="off" spellCheck={false} aria-label="Search" />
-        {q && <button className="btn ghost sm clear" onClick={() => { setQ(''); input.current?.focus() }} aria-label="Clear">✕</button>}
+        {q && <button type="button" className="btn ghost icon-only sm clear" onClick={() => { setQ(''); input.current?.focus() }} aria-label="Clear"><Icon name="x" size={16} /></button>}
       </div>
-      <div className={`pal-body ${cur ? 'has-detail' : ''}`}>
-        <div className="pal-list" ref={list} role="listbox">
-          {res && rows.length === 0 && <div className="empty"><h3>{q ? 'No matches' : 'Nothing here yet'}</h3><p className="muted">{q ? 'Try fewer letters — search matches word beginnings and substrings.' : 'Copy something with a connected client, or add a snippet or quicklink.'}</p></div>}
+      <div className={`fd-body ${cur ? 'has-detail' : ''}`}>
+        <div className="fd-list" ref={list} role="listbox">
+          {res && rows.length === 0 && <div className="empty fd-empty"><div className="empty-ico"><Icon name={q ? 'search' : 'clipboard'} size={22} /></div><h3>{q ? 'No matches' : 'Nothing here yet'}</h3><p className="muted">{q ? 'Try fewer letters — search matches word beginnings and substrings.' : 'Copy something with a connected client, or add a snippet or quicklink.'}</p></div>}
           {sections.map(s => (
-            <div key={s.title} className="pal-section">
-              <div className="pal-head"><span>{s.title}</span>{s.more && <a href={s.more} onClick={e => { e.preventDefault(); navigate(s.more!) }}>Show all</a>}</div>
+            <div key={s.title} className="fd-section">
+              <div className="fd-head"><span>{s.title}</span>{s.more && <a href={s.more} onClick={e => { e.preventDefault(); navigate(s.more!) }}>Show all</a>}</div>
               {s.rows.map(({ row, i }) => {
                 const common = { hl: i === hl, onClick: () => { setHl(i); if (narrow) setSheet(true) }, onDoubleClick: () => primary(row) }
                 return <div key={row.kind + row.item.id} data-i={i}>
@@ -131,7 +137,7 @@ export default function Search() {
         </div>
         {!narrow && cur && <aside className="detail">{detail}</aside>}
       </div>
-      <Hints items={cur?.kind === 'clip' ? [['↵', 'Copy'], ['⌘↵', cur.item.kind === 'link' ? 'Open' : 'Pin'], ['⌘⌫', 'Delete'], ['↑↓', 'Move']] : cur?.kind === 'snippet' ? [['↵', 'Copy expanded'], ['⌘↵', 'Copy template'], ['⌘E', 'Edit'], ['↑↓', 'Move']] : cur ? [['↵', 'Open'], ['⌘↵', 'Copy link'], ['⌘E', 'Edit'], ['↑↓', 'Move']] : [['⌘K', 'Focus search'], ['↑↓', 'Move'], ['esc', 'Clear']]} />
+      <Hints items={cur?.kind === 'clip' ? [['↵', 'Copy'], ['⌘↵', cur.item.kind === 'link' ? 'Open' : 'Pin'], ['⌘⌫', 'Delete'], ['↑↓', 'Move']] : cur?.kind === 'snippet' ? [['↵', 'Copy expanded'], ['⌘↵', 'Copy template'], ['⌘E', 'Edit'], ['↑↓', 'Move']] : cur ? [['↵', 'Open'], ['⌘↵', 'Copy link'], ['⌘E', 'Edit'], ['↑↓', 'Move']] : [['↑↓', 'Move'], ['esc', 'Clear'], ['⌘K', 'Quick palette']]} />
       {narrow && sheet && cur && <Modal title={cur.kind === 'clip' ? 'Clip' : cur.item.name} onClose={() => setSheet(false)}>{detail}</Modal>}
       {prompt}
     </div>

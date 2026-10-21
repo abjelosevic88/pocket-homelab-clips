@@ -7,8 +7,10 @@ import { useActions } from '../lib/actions'
 import { useApp } from '../lib/app-context'
 import { copyText } from '../lib/clipboard'
 import { plural } from '../lib/format'
-import { ClipMeta, ClipPreview, ClipRow, Hints, KIND_LABEL, clipLabel, useMedia } from '../components/items'
+import { AddTextModal, ClipMeta, ClipPreview, ClipRow, Hints, KIND_ICON, KIND_LABEL, clipLabel, useMedia } from '../components/items'
 import { Confirm, Field, Modal, PageHeader, useToast } from '../components/ui'
+import { Icon } from '../components/icons'
+import { announceChange, useOnChange } from '../lib/events'
 
 type Filter = 'all' | 'pinned' | Kind
 const PAGE = 60
@@ -45,6 +47,7 @@ export default function Clipboard() {
     } catch (e) { if ((e as Error).name !== 'AbortError') toast((e as Error).message, 'err') }
   }, [q, filter]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const t = setTimeout(load, q ? 60 : 0); return () => clearTimeout(t) }, [load, q])
+  useOnChange(load)
   const more = async () => { const d = await api.get<{ clips: Clip[]; total: number }>(url(clips.length)); setClips(x => [...x, ...d.clips]); setTotal(d.total) }
   useEffect(() => { list.current?.querySelector<HTMLElement>(`[data-i="${hl}"]`)?.scrollIntoView({ block: 'nearest' }) }, [hl])
 
@@ -54,16 +57,16 @@ export default function Clipboard() {
 
   const copy = async (c: Clip) => { const u = await copyClip(c); if (u) load() }
   const pin = async (c: Clip) => { patch(await api.put<Clip>(`${V1}/clips/${c.id}`, { pinned: !c.pinned })); toast(c.pinned ? 'Unpinned' : 'Pinned') }
-  const del = async (c: Clip) => { await api.del(`${V1}/clips/${c.id}`); setClips(xs => xs.filter(x => x.id !== c.id)); setTotal(t => t - 1); toast('Deleted') }
+  const del = async (c: Clip) => { await api.del(`${V1}/clips/${c.id}`); setClips(xs => xs.filter(x => x.id !== c.id)); setTotal(t => t - 1); toast('Deleted'); announceChange() }
   const openLink = (c: Clip) => window.open(c.content.startsWith('www.') ? 'https://' + c.content : c.content, '_blank', 'noopener')
   const saveSnippet = (c: Clip) => navigate(`/snippets?new=1&content=${encodeURIComponent(c.content)}&name=${encodeURIComponent(clipLabel(c).slice(0, 60))}`)
   const saveLink = (c: Clip) => navigate(`/quicklinks?new=1&link=${encodeURIComponent(c.content)}&name=${encodeURIComponent(c.title || '')}`)
-  const clearAll = async () => { const r = await api.del<{ deleted: number }>(`${V1}/clips${filter !== 'all' && filter !== 'pinned' ? `?kind=${filter}` : ''}`); toast(`${plural(r.deleted, 'clip')} removed`); setClear(false); load() }
+  const clearAll = async () => { const r = await api.del<{ deleted: number }>(`${V1}/clips${filter !== 'all' && filter !== 'pinned' ? `?kind=${filter}` : ''}`); toast(`${plural(r.deleted, 'clip')} removed`); setClear(false); load(); announceChange() }
   const upload = async (f: File) => {
     const fd = new FormData(); fd.append('file', f); fd.append('source_app', 'Pocket Clips')
     const r = await fetch(`${V1}/clips`, { method: 'POST', body: fd, credentials: 'same-origin' })
     if (!r.ok) { toast((await r.json()).error || 'Upload failed', 'err'); return }
-    toast('Image added'); load()
+    toast('Image added'); load(); announceChange()
   }
   // Paste anywhere on the page adds a clip (text or image).
   useEffect(() => {
@@ -72,7 +75,7 @@ export default function Clipboard() {
       const img = Array.from(e.clipboardData?.items || []).find(i => i.type.startsWith('image/'))
       if (img) { const f = img.getAsFile(); if (f) { e.preventDefault(); upload(f) }; return }
       const text = e.clipboardData?.getData('text/plain')
-      if (text?.trim()) { e.preventDefault(); await api.post(`${V1}/clips`, { content: text, source_app: 'Pocket Clips' }); toast('Clip added'); load() }
+      if (text?.trim()) { e.preventDefault(); await api.post(`${V1}/clips`, { content: text, source_app: 'Pocket Clips' }); toast('Clip added'); load(); announceChange() }
     }
     window.addEventListener('paste', h)
     return () => window.removeEventListener('paste', h)
@@ -92,14 +95,14 @@ export default function Clipboard() {
     <div className="detail-body">
       <ClipPreview c={cur} />
       <ClipMeta c={cur} />
-      <div className="row wrap mt">
-        <button className="btn primary" onClick={() => copy(cur)}>Copy</button>
-        {cur.kind === 'link' && <button className="btn" onClick={() => openLink(cur)}>Open</button>}
-        <button className="btn" onClick={() => pin(cur)}>{cur.pinned ? 'Unpin' : 'Pin'}</button>
-        {cur.kind !== 'image' && <button className="btn" onClick={() => saveSnippet(cur)}>Save as snippet</button>}
-        {cur.kind === 'link' && <button className="btn" onClick={() => saveLink(cur)}>Make quicklink</button>}
-        <button className="btn ghost sm" onClick={() => setEditTitle(cur)}>Rename</button>
-        <button className="btn ghost sm danger-text" onClick={() => del(cur)}>Delete</button>
+      <div className="detail-actions">
+        <button type="button" className="btn primary" onClick={() => copy(cur)}><Icon name="copy" size={15} />Copy</button>
+        {cur.kind === 'link' && <button type="button" className="btn" onClick={() => openLink(cur)}><Icon name="external" size={15} />Open</button>}
+        <button type="button" className="btn" onClick={() => pin(cur)}><Icon name="pushpin" size={15} />{cur.pinned ? 'Unpin' : 'Pin'}</button>
+        {cur.kind !== 'image' && <button type="button" className="btn" onClick={() => saveSnippet(cur)}><Icon name="scissors" size={15} />Save as snippet</button>}
+        {cur.kind === 'link' && <button type="button" className="btn" onClick={() => saveLink(cur)}><Icon name="zap" size={15} />Make quicklink</button>}
+        <button type="button" className="btn ghost" onClick={() => setEditTitle(cur)}><Icon name="edit" size={15} />Rename</button>
+        <button type="button" className="btn ghost danger-text" onClick={() => del(cur)}><Icon name="trash" size={15} />Delete</button>
       </div>
     </div>
   )
@@ -107,25 +110,25 @@ export default function Clipboard() {
   return (
     <>
       <PageHeader title="Clipboard" sub={`${plural(total, 'clip')}${settings?.clip_retention_days ? ` · kept ${settings.clip_retention_days} days, pinned forever` : ''}`} actions={<>
-        <button className="btn" onClick={() => setAddText(true)}>+ Text</button>
-        <button className="btn" onClick={() => fileInput.current?.click()}>+ Image</button>
-        <input ref={fileInput} type="file" accept="image/*" hidden onChange={e => e.target.files?.[0] && upload(e.target.files[0])} />
-        <button className="btn ghost danger-text" onClick={() => setClear(true)} disabled={!total}>Clear history</button>
+        <button type="button" className="btn" onClick={() => setAddText(true)}><Icon name="type" size={15} />Text</button>
+        <button type="button" className="btn" onClick={() => fileInput.current?.click()}><Icon name="image" size={15} />Image</button>
+        <input ref={fileInput} type="file" accept="image/*" hidden onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) upload(f) }} />
+        <button type="button" className="btn ghost danger-text" onClick={() => setClear(true)} disabled={!total}><Icon name="trash" size={15} />Clear history</button>
       </>} />
-      <div className="palette page">
-        <div className="pal-search">
-          <span className="ico">⌕</span>
+      <div className="finder page">
+        <div className="fd-search">
+          <Icon name="search" size={18} />
           <input value={q} onChange={e => set('q', e.target.value)} onKeyDown={onKey} placeholder="Search your clipboard history…" autoFocus autoComplete="off" spellCheck={false} aria-label="Search clips" />
-          {q && <button className="btn ghost sm clear" onClick={() => set('q', '')} aria-label="Clear">✕</button>}
+          {q && <button type="button" className="btn ghost icon-only sm clear" onClick={() => set('q', '')} aria-label="Clear"><Icon name="x" size={16} /></button>}
         </div>
-        <div className="chips mb">
-          {(['all', 'pinned', ...KINDS] as Filter[]).map(k => <button key={k} className={`chip ${filter === k ? 'active' : ''}`} onClick={() => set('kind', k === 'all' ? '' : k)}>{k === 'all' ? 'All' : k === 'pinned' ? '📌 Pinned' : KIND_LABEL[k] + 's'}</button>)}
+        <div className="fd-chips">
+          {(['all', 'pinned', ...KINDS] as Filter[]).map(k => <button type="button" key={k} className={`chip ${filter === k ? 'active' : ''}`} onClick={() => set('kind', k === 'all' ? '' : k)}>{k !== 'all' && <Icon name={k === 'pinned' ? 'pushpin' : KIND_ICON[k]} size={13} />}{k === 'all' ? 'All' : k === 'pinned' ? 'Pinned' : KIND_LABEL[k] + 's'}</button>)}
         </div>
-        <div className={`pal-body ${cur ? 'has-detail' : ''}`}>
-          <div className="pal-list" ref={list} role="listbox">
-            {clips.length === 0 && <div className="empty"><h3>{q ? 'No matches' : 'No clips yet'}</h3><p className="muted">{q ? 'Search matches word beginnings and substrings.' : 'Paste anything on this page to add it, or connect a clipboard watcher (Settings → Clients).'}</p></div>}
+        <div className={`fd-body ${cur ? 'has-detail' : ''}`}>
+          <div className="fd-list" ref={list} role="listbox">
+            {clips.length === 0 && <div className="empty fd-empty"><div className="empty-ico"><Icon name={q ? 'search' : 'clipboard'} size={22} /></div><h3>{q ? 'No matches' : 'No clips yet'}</h3><p className="muted">{q ? 'Search matches word beginnings and substrings.' : 'Paste anything on this page to add it, or connect a clipboard watcher (Settings → Clients).'}</p></div>}
             {clips.map((c, i) => <div key={c.id} data-i={i}><ClipRow c={c} hl={i === hl} onClick={() => { setHl(i); if (narrow) setSheet(true) }} onDoubleClick={() => copy(c)} /></div>)}
-            {clips.length < total && <button className="btn block mt-sm" onClick={more}>Show more ({total - clips.length} left)</button>}
+            {clips.length < total && <button type="button" className="btn block mt-sm" onClick={more}>Show more ({total - clips.length} left)</button>}
           </div>
           {!narrow && cur && <aside className="detail">{detail}</aside>}
         </div>
@@ -134,7 +137,7 @@ export default function Clipboard() {
       {narrow && sheet && cur && <Modal title="Clip" onClose={() => setSheet(false)}>{detail}</Modal>}
       {clear && <Confirm title="Clear clipboard history?" message={`Removes every unpinned ${filter !== 'all' && filter !== 'pinned' ? KIND_LABEL[filter].toLowerCase() + ' ' : ''}clip. Pinned clips stay.`} onCancel={() => setClear(false)} onConfirm={clearAll} />}
       {editTitle && <TitleModal c={editTitle} onClose={() => setEditTitle(null)} onSaved={c => { patch(c); setEditTitle(null) }} />}
-      {addText && <AddTextModal onClose={() => setAddText(false)} onAdded={() => { setAddText(false); load() }} />}
+      {addText && <AddTextModal onClose={() => setAddText(false)} onAdded={() => { setAddText(false); load(); announceChange() }} />}
       {prompt}
     </>
   )
@@ -147,19 +150,6 @@ function TitleModal({ c, onClose, onSaved }: { c: Clip; onClose: () => void; onS
       <form className="grid" style={{ gap: 12 }} onSubmit={async e => { e.preventDefault(); onSaved(await api.put<Clip>(`${V1}/clips/${c.id}`, { title: t })) }}>
         <Field label="Title" help="A label for the list; the content itself never changes."><input value={t} onChange={e => setT(e.target.value)} autoFocus maxLength={200} /></Field>
         <div className="form-actions"><button type="button" className="btn" onClick={onClose}>Cancel</button><button className="btn primary">Save</button></div>
-      </form>
-    </Modal>
-  )
-}
-
-function AddTextModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
-  const [t, setT] = useState('')
-  const { toast } = useToast()
-  return (
-    <Modal title="Add a clip" onClose={onClose}>
-      <form className="grid" style={{ gap: 12 }} onSubmit={async e => { e.preventDefault(); if (!t.trim()) return; try { await api.post(`${V1}/clips`, { content: t, source_app: 'Pocket Clips' }); toast('Clip added'); onAdded() } catch (err) { toast((err as Error).message, 'err') } }}>
-        <Field label="Content" help="Links and colours are recognised automatically. Tip: just paste anywhere on the Clipboard page."><textarea value={t} onChange={e => setT(e.target.value)} autoFocus rows={6} /></Field>
-        <div className="form-actions"><button type="button" className="btn" onClick={onClose}>Cancel</button><button className="btn primary" disabled={!t.trim()}>Add</button></div>
       </form>
     </Modal>
   )

@@ -7,7 +7,9 @@ import { useApp } from '../lib/app-context'
 import { copyText } from '../lib/clipboard'
 import { plural } from '../lib/format'
 import { Hints, SnippetMeta, SnippetRow, Template, useMedia } from '../components/items'
-import { Confirm, Field, Modal, PageHeader, useDebounce, useToast } from '../components/ui'
+import { Icon } from '../components/icons'
+import { announceChange, useOnChange } from '../lib/events'
+import { Confirm, Field, Modal, PageHeader, Switch, useDebounce, useToast } from '../components/ui'
 import { PlaceholderEditor, SNIPPET_COMPLETIONS } from '../components/PlaceholderEditor'
 
 export default function Snippets() {
@@ -40,6 +42,7 @@ export default function Snippets() {
     } catch (e) { if ((e as Error).name !== 'AbortError') toast((e as Error).message, 'err') }
   }, [q, folder]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const t = setTimeout(load, q ? 60 : 0); return () => clearTimeout(t) }, [load, q])
+  useOnChange(load)
   useEffect(() => { list.current?.querySelector<HTMLElement>(`[data-i="${hl}"]`)?.scrollIntoView({ block: 'nearest' }) }, [hl])
   // deep links from the palette / clipboard: ?edit=ID, ?new=1&content=…
   useEffect(() => {
@@ -47,16 +50,16 @@ export default function Snippets() {
     if (id) api.get<Snippet>(`${V1}/snippets/${id}`).then(setEdit).catch(() => {})
     if (params.get('new')) setEdit({ content: params.get('content') || '', name: params.get('name') || '' })
     if (id || params.get('new')) { const p = new URLSearchParams(params); ['edit', 'new', 'content', 'name'].forEach(k => p.delete(k)); setParams(p, { replace: true }) }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [params.get('new'), params.get('edit')]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const cur = items[hl]
   const set = (k: string, v: string) => { const p = new URLSearchParams(params); if (v) p.set(k, v); else p.delete(k); setParams(p, { replace: true }) }
   const mine = (s: Snippet) => s.user_id === user?.id
   const use = async (s: Snippet) => { if (await useSnippet(s)) load() }
-  const pin = async (s: Snippet) => { await api.put(`${V1}/snippets/${s.id}`, { pinned: !s.pinned }); toast(s.pinned ? 'Unpinned' : 'Pinned'); load() }
-  const remove = async (s: Snippet) => { await api.del(`${V1}/snippets/${s.id}`); setDel(null); toast('Snippet deleted'); load(); reloadMeta() }
+  const pin = async (s: Snippet) => { await api.put(`${V1}/snippets/${s.id}`, { pinned: !s.pinned }); toast(s.pinned ? 'Unpinned' : 'Pinned'); load(); announceChange() }
+  const remove = async (s: Snippet) => { await api.del(`${V1}/snippets/${s.id}`); setDel(null); toast('Snippet deleted'); load(); reloadMeta(); announceChange() }
   const importFile = async (f: File) => {
-    try { const r = await api.post<Record<string, number>>(`${V1}/import`, JSON.parse(await f.text())); toast(`Imported ${plural(r.snippets, 'snippet')}${r.quicklinks ? `, ${plural(r.quicklinks, 'quicklink')}` : ''}${r.skipped ? `, ${r.skipped} skipped` : ''}`); load(); reloadMeta() } catch (e) { toast((e as Error).message, 'err') }
+    try { const r = await api.post<Record<string, number>>(`${V1}/import`, JSON.parse(await f.text())); toast(`Imported ${plural(r.snippets, 'snippet')}${r.quicklinks ? `, ${plural(r.quicklinks, 'quicklink')}` : ''}${r.skipped ? `, ${r.skipped} skipped` : ''}`); load(); reloadMeta(); announceChange() } catch (e) { toast((e as Error).message, 'err') }
   }
   const onKey = (e: React.KeyboardEvent) => {
     const meta = e.metaKey || e.ctrlKey
@@ -72,11 +75,11 @@ export default function Snippets() {
     <div className="detail-body">
       <pre className="preview text"><Template text={cur.content} /></pre>
       <SnippetMeta s={cur} />
-      <div className="row wrap mt">
-        <button className="btn primary" onClick={() => use(cur)}>Copy expanded</button>
-        <button className="btn" onClick={() => { copyText(cur.content); toast('Template copied') }}>Copy template</button>
-        {mine(cur) && <><button className="btn" onClick={() => setEdit(cur)}>Edit</button><button className="btn" onClick={() => pin(cur)}>{cur.pinned ? 'Unpin' : 'Pin'}</button><button className="btn ghost sm danger-text" onClick={() => setDel(cur)}>Delete</button></>}
-        {!mine(cur) && <button className="btn" onClick={() => setEdit({ name: cur.name, content: cur.content, folder: cur.folder })}>Duplicate to mine</button>}
+      <div className="detail-actions">
+        <button type="button" className="btn primary" onClick={() => use(cur)}><Icon name="copy" size={15} />Copy expanded</button>
+        <button type="button" className="btn" onClick={() => { copyText(cur.content); toast('Template copied') }}><Icon name="code" size={15} />Copy template</button>
+        {mine(cur) && <><button type="button" className="btn" onClick={() => setEdit(cur)}><Icon name="edit" size={15} />Edit</button><button type="button" className="btn" onClick={() => pin(cur)}><Icon name="pushpin" size={15} />{cur.pinned ? 'Unpin' : 'Pin'}</button><button type="button" className="btn ghost danger-text" onClick={() => setDel(cur)}><Icon name="trash" size={15} />Delete</button></>}
+        {!mine(cur) && <button type="button" className="btn" onClick={() => setEdit({ name: cur.name, content: cur.content, folder: cur.folder })}><Icon name="copy" size={15} />Duplicate to mine</button>}
       </div>
     </div>
   )
@@ -84,21 +87,21 @@ export default function Snippets() {
   return (
     <>
       <PageHeader title="Snippets" sub={`${plural(total, 'snippet')} · placeholders like {clipboard}, {date} and {argument name="x"} are filled in when you copy`} actions={<>
-        <button className="btn" onClick={() => fileInput.current?.click()}>Import JSON</button>
-        <input ref={fileInput} type="file" accept="application/json,.json" hidden onChange={e => e.target.files?.[0] && importFile(e.target.files[0])} />
-        <a className="btn" href={`${V1}/export?what=snippets&bare=1`}>Export</a>
-        <button className="btn primary" onClick={() => setEdit({})}>+ New snippet</button>
+        <button type="button" className="btn" onClick={() => fileInput.current?.click()}><Icon name="upload" size={15} />Import JSON</button>
+        <input ref={fileInput} type="file" accept="application/json,.json" hidden onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) importFile(f) }} />
+        <a className="btn" href={`${V1}/export?what=snippets&bare=1`}><Icon name="download" size={15} />Export</a>
+        <button type="button" className="btn primary" onClick={() => setEdit({})}><Icon name="plus" size={15} strokeWidth={2.2} />New snippet</button>
       </>} />
-      <div className="palette page">
-        <div className="pal-search">
-          <span className="ico">⌕</span>
+      <div className="finder page">
+        <div className="fd-search">
+          <Icon name="search" size={18} />
           <input value={q} onChange={e => set('q', e.target.value)} onKeyDown={onKey} placeholder="Search snippets by name, keyword or text…" autoFocus autoComplete="off" spellCheck={false} aria-label="Search snippets" />
-          {q && <button className="btn ghost sm clear" onClick={() => set('q', '')} aria-label="Clear">✕</button>}
+          {q && <button type="button" className="btn ghost icon-only sm clear" onClick={() => set('q', '')} aria-label="Clear"><Icon name="x" size={16} /></button>}
         </div>
-        {folders.length > 0 && <div className="chips mb"><button className={`chip ${!folder ? 'active' : ''}`} onClick={() => set('folder', '')}>All</button>{folders.map(f => <button key={f} className={`chip ${folder === f ? 'active' : ''}`} onClick={() => set('folder', f)}>{f}</button>)}</div>}
-        <div className={`pal-body ${cur ? 'has-detail' : ''}`}>
-          <div className="pal-list" ref={list} role="listbox">
-            {items.length === 0 && <div className="empty"><h3>{q ? 'No matches' : 'No snippets yet'}</h3><p className="muted">{q ? '' : 'Create one, or import a JSON array of snippets.'}</p></div>}
+        {folders.length > 0 && <div className="fd-chips"><button type="button" className={`chip ${!folder ? 'active' : ''}`} onClick={() => set('folder', '')}>All</button>{folders.map(f => <button type="button" key={f} className={`chip ${folder === f ? 'active' : ''}`} onClick={() => set('folder', f)}><Icon name="folder" size={13} />{f}</button>)}</div>}
+        <div className={`fd-body ${cur ? 'has-detail' : ''}`}>
+          <div className="fd-list" ref={list} role="listbox">
+            {items.length === 0 && <div className="empty fd-empty"><div className="empty-ico"><Icon name={q ? 'search' : 'scissors'} size={22} /></div><h3>{q ? 'No matches' : 'No snippets yet'}</h3><p className="muted">{q ? '' : 'Create one, or import a JSON array of snippets.'}</p></div>}
             {items.map((s, i) => <div key={s.id} data-i={i}><SnippetRow s={s} hl={i === hl} onClick={() => { setHl(i); if (narrow) setSheet(true) }} onDoubleClick={() => use(s)} /></div>)}
           </div>
           {!narrow && cur && <aside className="detail">{detail}</aside>}
@@ -106,7 +109,7 @@ export default function Snippets() {
         <Hints items={[['↵', 'Copy expanded'], ['⌘↵', 'Copy template'], ['⌘E', 'Edit'], ['⌘P', 'Pin']]} />
       </div>
       {narrow && sheet && cur && <Modal title={cur.name} onClose={() => setSheet(false)}>{detail}</Modal>}
-      {edit && <SnippetModal s={edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); load(); reloadMeta() }} />}
+      {edit && <SnippetModal s={edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); load(); reloadMeta(); announceChange() }} />}
       {del && <Confirm title={`Delete “${del.name}”?`} message="The snippet is removed for everyone it was shared with." onCancel={() => setDel(null)} onConfirm={() => remove(del)} />}
       {prompt}
     </>
@@ -158,12 +161,12 @@ function SnippetModal({ s, onClose, onSaved }: { s: Partial<Snippet>; onClose: (
           <div className="chips mt-sm">{PLACEHOLDERS.map(([ph, help]) => <button type="button" key={ph} className="chip sm mono" title={help} onClick={() => insert(ph)}>{ph}</button>)}</div>
           <span className="help">Type <code>{'{'}</code> for completions.</span>
         </Field>
-        {preview && <div className="callout"><div className="muted small mb-sm">Preview with today's values</div><pre className="mono" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{preview.text}</pre>{preview.missing.length > 0 && <div className="muted small mt-sm">Asks for: {preview.missing.join(', ')}</div>}</div>}
+        {preview && <div className="callout info"><Icon name="sparkles" size={15} /><div className="grow"><div className="muted small mb-sm">Preview with today's values</div><pre className="mono" style={{ margin: 0, whiteSpace: 'pre-wrap', background: 'none', padding: 0 }}>{preview.text}</pre>{preview.missing.length > 0 && <div className="muted small mt-sm">Asks for: {preview.missing.join(', ')}</div>}</div></div>}
         <div className="two-col tight">
           <Field label="Folder" help="Optional grouping, e.g. Work."><input value={f.folder} onChange={e => setF({ ...f, folder: e.target.value })} list="folders" maxLength={60} /><datalist id="folders">{folders.snippets.map(x => <option key={x} value={x} />)}</datalist></Field>
           <div className="grid" style={{ gap: 8, alignSelf: 'end' }}>
-            <label className="row"><input type="checkbox" checked={f.shared} onChange={e => setF({ ...f, shared: e.target.checked })} style={{ width: 'auto' }} /> Share with other users (read-only for them)</label>
-            <label className="row"><input type="checkbox" checked={f.pinned} onChange={e => setF({ ...f, pinned: e.target.checked })} style={{ width: 'auto' }} /> Pin to the top</label>
+            <div className="check-row"><Switch checked={f.shared} onChange={v => setF({ ...f, shared: v })} label="Share with other users (read-only for them)" /><span>Share with other users (read-only for them)</span></div>
+            <div className="check-row"><Switch checked={f.pinned} onChange={v => setF({ ...f, pinned: v })} label="Pin to the top" /><span>Pin to the top</span></div>
           </div>
         </div>
         <div className="form-actions"><button type="button" className="btn" onClick={onClose}>Cancel</button><button className="btn primary" disabled={busy}>{s.id ? 'Save' : 'Create'}</button></div>
