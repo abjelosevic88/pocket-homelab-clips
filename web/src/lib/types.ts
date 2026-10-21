@@ -76,7 +76,7 @@ export interface SearchResult {
   quicklinks: Quicklink[]
   quicklinks_total: number
 }
-export interface ExpandResult { text: string; cursor: number; missing: string[] }
+export interface ExpandResult { text: string; cursor: number; missing: string[] | null }
 export interface Dashboard {
   clips: number
   clips_today: number

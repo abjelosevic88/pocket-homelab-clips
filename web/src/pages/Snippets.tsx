@@ -161,7 +161,7 @@ function SnippetModal({ s, onClose, onSaved }: { s: Partial<Snippet>; onClose: (
           <div className="chips mt-sm">{PLACEHOLDERS.map(([ph, help]) => <button type="button" key={ph} className="chip sm mono" title={help} onClick={() => insert(ph)}>{ph}</button>)}</div>
           <span className="help">Type <code>{'{'}</code> for completions.</span>
         </Field>
-        {preview && <div className="callout info"><Icon name="sparkles" size={15} /><div className="grow"><div className="muted small mb-sm">Preview with today's values</div><pre className="mono" style={{ margin: 0, whiteSpace: 'pre-wrap', background: 'none', padding: 0 }}>{preview.text}</pre>{preview.missing.length > 0 && <div className="muted small mt-sm">Asks for: {preview.missing.join(', ')}</div>}</div></div>}
+        {preview && <div className="callout info"><Icon name="sparkles" size={15} /><div className="grow"><div className="muted small mb-sm">Preview with today's values</div><pre className="mono" style={{ margin: 0, whiteSpace: 'pre-wrap', background: 'none', padding: 0 }}>{preview.text}</pre>{(preview.missing?.length ?? 0) > 0 && <div className="muted small mt-sm">Asks for: {(preview.missing || []).join(', ')}</div>}</div></div>}
         <div className="two-col tight">
           <Field label="Folder" help="Optional grouping, e.g. Work."><input value={f.folder} onChange={e => setF({ ...f, folder: e.target.value })} list="folders" maxLength={60} /><datalist id="folders">{folders.snippets.map(x => <option key={x} value={x} />)}</datalist></Field>
           <div className="grid" style={{ gap: 8, alignSelf: 'end' }}>
