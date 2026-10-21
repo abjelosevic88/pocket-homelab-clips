@@ -47,7 +47,7 @@ export function ClipRow({ c, hl, onClick, onDoubleClick, active }: { c: Clip; hl
     <div className={`fd-row ${hl ? 'hl' : ''} ${active ? 'active' : ''}`} onClick={onClick} onDoubleClick={onDoubleClick} role="option" aria-selected={hl}>
       <KindIcon kind={c.kind} color={c.kind === 'color' ? c.content : undefined} />
       <div className="fd-text">
-        <div className="fd-title">{c.snippet && c.kind !== 'image' ? <Highlight text={c.snippet} /> : clipLabel(c)}</div>
+        <div className="fd-title"><span className="fd-title-text">{c.snippet && c.kind !== 'image' ? <Highlight text={c.snippet} /> : clipLabel(c)}</span></div>
         <div className="fd-sub">{c.kind === 'link' && c.title ? c.title : c.lines > 1 ? `${plural(c.lines, 'line')} · ${plural(c.chars, 'character')}` : c.source_app || KIND_LABEL[c.kind]}</div>
       </div>
       <div className="fd-meta">{c.pinned && <PinMark />}<span>{timeAgo(c.last_copied_at)}</span></div>

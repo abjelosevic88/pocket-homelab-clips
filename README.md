@@ -47,7 +47,7 @@ Everything is yours per user (clips always; snippets and quicklinks unless you s
 <p align="center">
   <img src="docs/screenshots/mobile.png" width="260" alt="The search on a phone">&nbsp;&nbsp;
   <img src="docs/screenshots/search-dark.png" width="520" alt="Search in dark mode"><br>
-  <sub>Installable PWA with a bottom tab bar, plus dark mode.</sub>
+  <sub>Installable PWA with a sidebar drawer on phones, plus dark mode (it follows the system).</sub>
 </p>
 
 ## Features

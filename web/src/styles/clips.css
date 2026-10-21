@@ -182,3 +182,4 @@ button.preview.image:hover .zoom-hint { opacity: 1; }
 .kind-ico.sm { width: 24px; height: 24px; border-radius: 7px; }
 .palette-box mark { background: transparent; color: var(--accent-ink); font-weight: 700; }
 .pal-label .kw { margin-left: 8px; }
+.fd-title-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
