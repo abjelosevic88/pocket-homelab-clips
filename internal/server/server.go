@@ -248,6 +248,7 @@ func (s *Server) Router() http.Handler {
 	r.Use(middleware.Compress(5))
 	r.Use(middleware.Timeout(60 * time.Second))
 
+	r.Get("/pocket-ask.js", s.core.AskWidget("clips"))
 	r.Get("/healthz", s.handleHealth)
 	r.Get("/readyz", s.handleReady)
 	r.Get("/api/health", s.handleHealth)
