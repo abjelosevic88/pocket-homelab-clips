@@ -35,6 +35,16 @@ func newFakeCore(t *testing.T) *fakeCore {
 	mux.HandleFunc("/api/v1/auth/introspect", func(w http.ResponseWriter, r *http.Request) {
 		var in struct{ Token string }
 		_ = json.NewDecoder(r.Body).Decode(&in)
+		if link, ok := strings.CutPrefix(in.Token, "pcx_"); ok { // pcx_<who>_<export|import|other>: a Pocket Move link
+			who, kind, _ := strings.Cut(link, "_")
+			scope := map[string]string{"export": "move:export", "import": "move:import"}[kind]
+			if scope == "" {
+				scope = "clips:read"
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"active": true, "kind": "delegated", "scope": scope, "audience": "clips",
+				"user": map[string]any{"id": 1, "sub": who, "email": who + "@example.com", "name": who, "role": "member"}, "app": map[string]any{"id": 7, "slug": "move", "name": "Pocket Move"}})
+			return
+		}
 		who := strings.TrimPrefix(in.Token, "pcd_")
 		if who == in.Token || who == "revoked" {
 			_ = json.NewEncoder(w).Encode(map[string]any{"active": false})

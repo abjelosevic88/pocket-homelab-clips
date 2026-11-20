@@ -91,6 +91,7 @@ Unknown placeholders are left as typed.
 |---|---|---|
 | `GET` | `/export` | `{"app", "version", "exported_at", "snippets": [{name,text,keyword,folder,…}], "quicklinks": [{name,link,keyword,icon,openWith,…}]}`. `?clips=1` adds your clips. `?what=snippets&bare=1` / `?what=quicklinks&bare=1` returns just that array. |
 | `POST` | `/import` | Body = an export, **or** a bare array (snippets `[{name,text,keyword}]` or quicklinks `[{name,link,openWith}]`, told apart by their fields). Items you already have are skipped; a keyword already in use is dropped from the imported item. → `{"snippets", "quicklinks", "clips", "skipped"}` |
+| `GET` | `/pocket/portable` | What Pocket Move can copy out (`/export`, link scope `move:export`) and bring in (`/import`, `move:import`). Pocket Move can copy your snippets and quicklinks out and bring them in. |
 
 ## Misc
 

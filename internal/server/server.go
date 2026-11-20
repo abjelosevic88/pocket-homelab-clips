@@ -143,6 +143,8 @@ func (s *Server) registerWithCore(ctx context.Context) error {
 		Icon:        "/favicon.svg", Version: Version,
 		URL: s.cfg.CoreAppURL, PublicURL: s.cfg.BaseURL, HealthPath: "/healthz", EnvPrefix: "CLIPS",
 		Publishes: []string{"clips.clip_created", "clips.snippet_created", "clips.quicklink_created"},
+		// Pocket Move: snippets and quicklinks out and in (links.go); Register adds move:export / move:import.
+		Portable: portable,
 	}
 	// Ask Core for a relying-party client so "Sign in with Pocket Core" needs no configuration.
 	if s.cfg.BaseURL != "" {
@@ -304,6 +306,7 @@ func (s *Server) Router() http.Handler {
 
 			r.Get("/export", s.handleExport)
 			r.Post("/import", s.handleImport)
+			r.Get(strings.TrimPrefix(core.PortablePath, "/api/v1"), portable.Handler())
 
 			r.Get("/users", s.handleListUsers)
 			r.Post("/users", s.handleCreateUser)
