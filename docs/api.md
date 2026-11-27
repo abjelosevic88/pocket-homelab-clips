@@ -93,13 +93,23 @@ Unknown placeholders are left as typed.
 | `POST` | `/import` | Body = an export, **or** a bare array (snippets `[{name,text,keyword}]` or quicklinks `[{name,link,openWith}]`, told apart by their fields). Items you already have are skipped; a keyword already in use is dropped from the imported item. → `{"snippets", "quicklinks", "clips", "skipped"}` |
 | `GET` | `/pocket/portable` | What Pocket Move can copy out (`/export`, link scope `move:export`) and bring in (`/import`, `move:import`). Pocket Move can copy your snippets and quicklinks out and bring them in. |
 
+## Pocket Search and Pocket Hub
+
+Snippets only: your clipboard history often holds passwords and codes, so it never comes out through these routes. Each answers for the signed-in person (or the person a Pocket Core link acts for) with their own snippets, never anyone else's shared ones. The shapes are Pocket Core's ([capabilities](https://github.com/abjelosevic88/pocket-homelab-core/blob/main/docs/capabilities.md)).
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/pocket/search?q=&limit=` | Your snippets by name, keyword, folder and text: `{"items": [{id, title, snippet: "folder · start of the text", kind: "snippet", date, url: "/snippets?edit=ID"}]}`. Link scope `pocket:search`; `!clips` and `!snippet` in Pocket Search. |
+| `GET` | `/pocket/widget` | Up to 8 of your snippets for a home screen: pinned ones first, then the ones you used most and last, then the newest. Link scope `pocket:widget`. |
+| `POST` | `/pocket/capture` | `{"request_id", "kind": "snippet", "title", "text"}` → `201 {"id", "title", "url"}`. A new snippet with that text, named after the title or its first words, with no folder or keyword, like **New snippet**. The same `request_id` again answers the same snippet. Link scope `pocket:capture`. |
+
 ## Misc
 
 | Method | Path | Notes |
 |---|---|---|
 | `GET` | `/dashboard` | `{"clips", "clips_today", "pinned_clips", "by_kind": {…}, "last_clip_at", "last_clip_ago", "last_clip_text", "snippets", "quicklinks"}` — made for a Homepage / Glance widget. |
 | `GET` | `/folders` | `{"snippets": [...], "quicklinks": [...]}` folder names in use. |
-| `GET` | `/auth/status` · `/auth/me` · `PUT /auth/me` | Session info and profile. |
+| `GET` | `/auth/status` · `/auth/me` · `PUT /auth/me` | Session info and profile. A Pocket Core link may read `/auth/me` (who it acts for). |
 | `GET` · `POST` · `PUT` · `DELETE` | `/users`, `/users/{id}` | Admin user management. |
 | `GET` · `PUT` | `/settings` | Box-wide settings (`PUT` admin only); `GET /settings/system` for runtime info and your own row counts (paths, sizes and box totals for admins). |
 | `GET` · `POST` · `DELETE` | `/tokens`, `/tokens/{id}` | Your API tokens. |

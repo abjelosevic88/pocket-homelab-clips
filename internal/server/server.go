@@ -49,6 +49,8 @@ type Server struct {
 	coreOK   bool
 	coreErr  string
 	resolved map[string]resolvedURL
+
+	captureMu sync.Mutex // one quick capture at a time, so a retry finds the first one's receipt
 }
 
 type resolvedURL struct {
@@ -138,13 +140,15 @@ func (s *Server) coreLoop(ctx context.Context) {
 
 func (s *Server) registerWithCore(ctx context.Context) error {
 	m := core.Manifest{
-		Slug: "clips", Name: "Pocket Clips",
+		Slug: "clips", Name: "Pocket Clips", Category: "Tools",
 		Description: "Clipboard history, snippets and quicklinks as a small self-hosted server, searchable from every device.",
 		Icon:        "/favicon.svg", Version: Version,
 		URL: s.cfg.CoreAppURL, PublicURL: s.cfg.BaseURL, HealthPath: "/healthz", EnvPrefix: "CLIPS",
 		Publishes: []string{"clips.clip_created", "clips.snippet_created", "clips.quicklink_created"},
 		// Pocket Move: snippets and quicklinks out and in (links.go); Register adds move:export / move:import.
 		Portable: portable,
+		// Search, widget and quick capture for snippets only (links.go); Register adds the pocket:* offers.
+		Capabilities: capabilities,
 	}
 	// Ask Core for a relying-party client so "Sign in with Pocket Core" needs no configuration.
 	if s.cfg.BaseURL != "" {
@@ -307,6 +311,11 @@ func (s *Server) Router() http.Handler {
 			r.Get("/export", s.handleExport)
 			r.Post("/import", s.handleImport)
 			r.Get(strings.TrimPrefix(core.PortablePath, "/api/v1"), portable.Handler())
+
+			// What Pocket Search and Hub ask every app (capabilities in links.go): snippets only.
+			r.Get(strings.TrimPrefix(core.SearchPath, "/api/v1"), core.SearchHandler(s.pocketSearch))
+			r.Get(strings.TrimPrefix(core.WidgetPath, "/api/v1"), core.WidgetHandler(s.pocketWidget))
+			r.Post(strings.TrimPrefix(core.CapturePath, "/api/v1"), capabilities.Capture.CaptureHandler(s.pocketCapture))
 
 			r.Get("/users", s.handleListUsers)
 			r.Post("/users", s.handleCreateUser)

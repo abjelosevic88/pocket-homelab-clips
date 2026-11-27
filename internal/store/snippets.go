@@ -100,6 +100,26 @@ func (s *Store) ListSnippets(ctx context.Context, f LibraryFilter) ([]Snippet, i
 	return out, total, rows.Err()
 }
 
+// TopSnippets returns the user's own snippets for a home screen: pinned ones
+// first, then the ones used most and last, then the newest. Shared snippets
+// of others never appear.
+func (s *Store) TopSnippets(ctx context.Context, userID int64, limit int) ([]Snippet, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT `+snippetCols+` FROM snippets s LEFT JOIN users u ON u.id = s.user_id WHERE s.user_id = ? ORDER BY s.pinned DESC, s.use_count DESC, COALESCE(s.last_used_at, '') DESC, s.id DESC LIMIT ?`, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []Snippet{}
+	for rows.Next() {
+		x, err := scanSnippet(rows, false)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *x)
+	}
+	return out, rows.Err()
+}
+
 // GetSnippet returns a snippet the user may see.
 func (s *Store) GetSnippet(ctx context.Context, userID, id int64) (*Snippet, error) {
 	return scanSnippet(s.DB.QueryRowContext(ctx, `SELECT `+snippetCols+` FROM snippets s LEFT JOIN users u ON u.id = s.user_id WHERE s.id = ? AND (s.user_id = ? OR s.shared = 1)`, id, userID), false)

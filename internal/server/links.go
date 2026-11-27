@@ -21,12 +21,28 @@ var portable = &core.Portable{
 	},
 }
 
+// capabilities are what Pocket Search and Pocket Hub may ask here for a
+// person (docs/capabilities.md in pocket-homelab-core): one value for the
+// manifest, the /pocket routes and linkAllows. Only snippets, which the
+// person wrote to reuse: the clipboard history holds passwords and codes and
+// never leaves through these routes. No day feed: what was copied on a day is
+// nothing for a journal.
+var capabilities = core.Capabilities{
+	Search:  &core.Searchable{What: "Your snippets, by name, keyword, folder and text", Kinds: []string{"snippet"}, Bangs: []string{"clips", "snippet"}},
+	Widget:  &core.Widget{Title: "Snippets", What: "Your pinned snippets and the ones you use most"},
+	Capture: &core.QuickCapture{Kinds: []core.CaptureKind{{Kind: "snippet", Label: "Snippet", What: "A new snippet with this text", Fields: []string{"title"}}}},
+}
+
 var errLinkScope = errors.New("outside the link's scope")
 
 // linkAllows reports whether a pcx_ link token with these scopes may make
-// this request. Clips offers nothing but Pocket Move's routes.
+// this request: Pocket Move's routes and the capability routes, each with its
+// own scope, and who the link acts for.
 func linkAllows(scopes []string, r *http.Request) bool {
-	return portable.LinkAllows(scopes, r)
+	if r.Method == http.MethodGet && r.URL.Path == "/api/v1/auth/me" {
+		return true
+	}
+	return portable.LinkAllows(scopes, r) || capabilities.LinkAllows(scopes, r)
 }
 
 // linkUser validates a pcx_ token and maps it to the person it acts for.

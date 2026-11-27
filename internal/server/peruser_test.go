@@ -25,8 +25,9 @@ import (
 // records published events.
 type fakeCore struct {
 	*httptest.Server
-	mu     sync.Mutex
-	events []map[string]any
+	mu       sync.Mutex
+	events   []map[string]any
+	manifest map[string]any
 }
 
 func newFakeCore(t *testing.T) *fakeCore {
@@ -35,14 +36,18 @@ func newFakeCore(t *testing.T) *fakeCore {
 	mux.HandleFunc("/api/v1/auth/introspect", func(w http.ResponseWriter, r *http.Request) {
 		var in struct{ Token string }
 		_ = json.NewDecoder(r.Body).Decode(&in)
-		if link, ok := strings.CutPrefix(in.Token, "pcx_"); ok { // pcx_<who>_<export|import|other>: a Pocket Move link
+		if link, ok := strings.CutPrefix(in.Token, "pcx_"); ok { // pcx_<who>_<kind>: a Pocket Move link (export, import) or Pocket Hub's (search, day, widget, capture)
 			who, kind, _ := strings.Cut(link, "_")
+			app := map[string]any{"id": 7, "slug": "move", "name": "Pocket Move"}
 			scope := map[string]string{"export": "move:export", "import": "move:import"}[kind]
+			if s := linkScopes[kind]; s != "" {
+				scope, app = s, map[string]any{"id": 8, "slug": "hub", "name": "Pocket Hub"}
+			}
 			if scope == "" {
 				scope = "clips:read"
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"active": true, "kind": "delegated", "scope": scope, "audience": "clips",
-				"user": map[string]any{"id": 1, "sub": who, "email": who + "@example.com", "name": who, "role": "member"}, "app": map[string]any{"id": 7, "slug": "move", "name": "Pocket Move"}})
+				"user": map[string]any{"id": 1, "sub": who, "email": who + "@example.com", "name": who, "role": "member"}, "app": app})
 			return
 		}
 		who := strings.TrimPrefix(in.Token, "pcd_")
@@ -51,6 +56,14 @@ func newFakeCore(t *testing.T) *fakeCore {
 			return
 		}
 		_ = json.NewEncoder(w).Encode(map[string]any{"active": true, "kind": "device", "user": map[string]any{"id": 1, "sub": who, "email": who + "@example.com", "name": who}})
+	})
+	mux.HandleFunc("/api/v1/apps/register", func(w http.ResponseWriter, r *http.Request) {
+		var m map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&m)
+		fc.mu.Lock()
+		fc.manifest = m
+		fc.mu.Unlock()
+		_ = json.NewEncoder(w).Encode(map[string]any{"app": map[string]any{}})
 	})
 	mux.HandleFunc("/api/v1/events", func(w http.ResponseWriter, r *http.Request) {
 		var e map[string]any
@@ -74,6 +87,7 @@ type principal struct {
 
 type peruserHarness struct {
 	t      *testing.T
+	s      *Server
 	ts     *httptest.Server
 	st     *store.Store
 	cfg    *config.Config
@@ -113,7 +127,7 @@ func newPerUserHarness(t *testing.T) *peruserHarness {
 			t.Fatal(err)
 		}
 	}
-	h := &peruserHarness{t: t, ts: ts, st: st, cfg: cfg, core: fc, alice: alice, bob: bob, as: map[string][]principal{}}
+	h := &peruserHarness{t: t, s: s, ts: ts, st: st, cfg: cfg, core: fc, alice: alice, bob: bob, as: map[string][]principal{}}
 	for _, u := range []*store.User{alice, bob} {
 		who := strings.Split(u.Email, "@")[0]
 		sid, _ := st.CreateSession(ctx, u.ID, time.Hour)
